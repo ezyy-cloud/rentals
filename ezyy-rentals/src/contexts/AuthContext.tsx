@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { usersService } from '@/lib/services'
@@ -25,25 +25,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session>(null)
   const [appUser, setAppUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const hasCheckedProfileCompletion = useRef(false)
 
   const loadAppUser = async (email: string) => {
     try {
-      // Add timeout to prevent hanging (10 seconds)
-      const timeoutId = setTimeout(() => {
-        console.warn('loadAppUser is taking longer than expected')
-      }, 10000)
+      // Add timeout to prevent hanging (5 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout loading user')), 5000)
+      })
       
-      const { data } = await usersService.getByEmail(email)
-      clearTimeout(timeoutId)
+      const userPromise = usersService.getByEmail(email)
+      const result = await Promise.race([userPromise, timeoutPromise])
       
-      if (data) {
-        setAppUser(data)
-      } else {
-        setAppUser(null)
+      if (result && 'data' in result) {
+        const { data } = result
+        if (data) {
+          setAppUser(data)
+        } else {
+          setAppUser(null)
+        }
       }
     } catch (error) {
       console.error('Error loading app user:', error)
-      setAppUser(null)
+      // Don't set appUser to null on timeout - keep existing value if any
+      // This prevents clearing the user state on slow network
+      if (error instanceof Error && error.message !== 'Timeout loading user') {
+        setAppUser(null)
+      }
     }
   }
 
@@ -70,21 +78,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setSession(session)
         setUser(session?.user ?? null)
-        if (session?.user?.email) {
+        
+        // Reset the flag when user signs out
+        if (event === 'SIGNED_OUT') {
+          hasCheckedProfileCompletion.current = false
+          setAppUser(null)
+        } else if (session?.user?.email) {
           await loadAppUser(session.user.email)
-          // If user just confirmed email (SIGNED_IN event), check profile completion
-          // This happens when user clicks email confirmation link
-          if (event === 'SIGNED_IN' && session) {
+          // Only check profile completion on actual sign-in events, not on every auth state change
+          // This prevents infinite redirect loops on page reload
+          // Also only check once per session to avoid repeated checks
+          if (event === 'SIGNED_IN' && !hasCheckedProfileCompletion.current) {
+            hasCheckedProfileCompletion.current = true
             try {
               const { data: userData } = await usersService.getByEmail(session.user.email)
               if (userData && !isProfileComplete(userData)) {
                 // Store flag to indicate this is a new user who needs to complete profile
-                // ProfileCompletionGuard will handle the redirect
+                // ProfileCompletionGuard will handle the redirect using React Router
                 sessionStorage.setItem('needs_profile_completion', 'true')
-                // Redirect to profile page
-                if (window.location.pathname !== '/profile') {
-                  window.location.href = '/profile'
-                }
+                // Don't use window.location.href here - it causes full page reloads
+                // ProfileCompletionGuard will handle the redirect properly
               }
             } catch (error) {
               console.error('Error checking profile completion:', error)
