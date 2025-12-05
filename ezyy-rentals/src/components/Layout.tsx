@@ -33,7 +33,7 @@ export function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       <header className="bg-white border-b-2 border-black sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -292,6 +292,22 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+
+      {/* Footer */}
+      <footer className="bg-black text-white py-4 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
+          Another{' '}
+          <a
+            href="https://ezyy.cloud"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white hover:text-gray-300 underline"
+          >
+            Ezyy Cloud
+          </a>
+          {' '}- {new Date().getFullYear()}
+        </div>
+      </footer>
 
       {/* Close user menu when clicking outside */}
       {userMenuOpen && (

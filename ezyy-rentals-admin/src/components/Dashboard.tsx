@@ -182,6 +182,22 @@ export function Dashboard({ children }: DashboardProps) {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto bg-white p-3 sm:p-4 md:p-6 mt-16">{children}</main>
+
+        {/* Footer */}
+        <footer className="bg-black text-white py-4 mt-auto">
+          <div className="px-3 sm:px-6 text-center text-sm">
+            Another{' '}
+            <a
+              href="https://ezyy.cloud"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-gray-300 underline"
+            >
+              Ezyy Cloud
+            </a>
+            {' '}- {new Date().getFullYear()}
+          </div>
+        </footer>
       </div>
     </div>
   )
