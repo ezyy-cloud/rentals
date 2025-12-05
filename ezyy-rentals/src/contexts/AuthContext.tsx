@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { usersService } from '@/lib/services'
 import type { User as AppUser } from '@/lib/types'
+import { isProfileComplete } from '@/lib/profile-utils'
 
 type Session = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']
 
@@ -46,11 +47,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user?.email) {
         await loadAppUser(session.user.email)
+        // If user just confirmed email (SIGNED_IN event), check profile completion
+        // This happens when user clicks email confirmation link
+        if (event === 'SIGNED_IN' && session) {
+          const { data: userData } = await usersService.getByEmail(session.user.email)
+          if (userData && !isProfileComplete(userData)) {
+            // Store flag to indicate this is a new user who needs to complete profile
+            // ProfileCompletionGuard will handle the redirect
+            sessionStorage.setItem('needs_profile_completion', 'true')
+            // Redirect to profile page
+            if (window.location.pathname !== '/profile') {
+              window.location.href = '/profile'
+            }
+          }
+        }
       } else {
         setAppUser(null)
       }

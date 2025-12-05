@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-
 import { Layout } from '@/components/Layout'
 import { Login } from '@/components/Login'
 import { SignUp } from '@/components/SignUp'
+import { ProfileCompletionGuard } from '@/components/ProfileCompletionGuard'
 import { Home } from '@/pages/Home'
 import { DeviceDetail } from '@/pages/DeviceDetail'
 import { Cart } from '@/pages/Cart'
@@ -128,7 +129,9 @@ function AppRoutes() {
         path="/checkout"
         element={
           <ProtectedRoute>
-            <Layout><Checkout /></Layout>
+            <ProfileCompletionGuard>
+              <Layout><Checkout /></Layout>
+            </ProfileCompletionGuard>
           </ProtectedRoute>
         }
       />
@@ -136,7 +139,9 @@ function AppRoutes() {
         path="/rentals"
         element={
           <ProtectedRoute>
-            <Layout><MyRentals /></Layout>
+            <ProfileCompletionGuard>
+              <Layout><MyRentals /></Layout>
+            </ProfileCompletionGuard>
           </ProtectedRoute>
         }
       />
@@ -152,7 +157,9 @@ function AppRoutes() {
         path="/notifications"
         element={
           <ProtectedRoute>
-            <Layout><Notifications /></Layout>
+            <ProfileCompletionGuard>
+              <Layout><Notifications /></Layout>
+            </ProfileCompletionGuard>
           </ProtectedRoute>
         }
       />
