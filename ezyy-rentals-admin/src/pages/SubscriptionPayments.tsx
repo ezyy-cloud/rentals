@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { subscriptionPaymentsService, devicesService } from '@/lib/supabase-service'
 import type { SubscriptionPayment, Device } from '@/lib/supabase-types'
 import { Button } from '@/components/ui/button'
 import { X, Edit, Trash2 } from 'lucide-react'
 
 export function SubscriptionPayments() {
+  const navigate = useNavigate()
   const [payments, setPayments] = useState<SubscriptionPayment[]>([])
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
@@ -332,7 +334,11 @@ export function SubscriptionPayments() {
             {!loading && filteredPayments.length > 0 && (
               <>
                 {filteredPayments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50">
+                <tr 
+                  key={payment.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/subscription-payments/${payment.id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     {payment.device?.name ?? 'N/A'}
                   </td>
@@ -352,7 +358,7 @@ export function SubscriptionPayments() {
                   </td>
                   <td className="px-6 py-4">{payment.notes ?? 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleEdit(payment)}
                         className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"

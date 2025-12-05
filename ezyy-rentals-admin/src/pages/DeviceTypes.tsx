@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { deviceTypesService } from '@/lib/supabase-service'
 import { storageService } from '@/lib/storage-service'
 import type { DeviceType } from '@/lib/supabase-types'
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { X, Edit, Trash2, Upload } from 'lucide-react'
 
 export function DeviceTypes() {
+  const navigate = useNavigate()
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -393,7 +395,11 @@ export function DeviceTypes() {
               </tr>
             ) : (
               deviceTypes.map((deviceType) => (
-                <tr key={deviceType.id} className="hover:bg-gray-50">
+                <tr 
+                  key={deviceType.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/device-types/${deviceType.id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">{deviceType.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{deviceType.sku}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{deviceType.model}</td>
@@ -409,7 +415,7 @@ export function DeviceTypes() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleEdit(deviceType)}
                         className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"

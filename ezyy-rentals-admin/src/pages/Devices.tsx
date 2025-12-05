@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { devicesService, deviceTypesService } from '@/lib/supabase-service'
 import type { Device, DeviceType } from '@/lib/supabase-types'
 import { Button } from '@/components/ui/button'
 import { X, Edit, Trash2 } from 'lucide-react'
 
 export function Devices() {
+  const navigate = useNavigate()
   const [devices, setDevices] = useState<Device[]>([])
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([])
   const [loading, setLoading] = useState(true)
@@ -268,7 +270,11 @@ export function Devices() {
               </tr>
             ) : (
               devices.map((device) => (
-                <tr key={device.id} className="hover:bg-gray-50">
+                <tr 
+                  key={device.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/devices/${device.id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">{device.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {device.device_type?.name ?? 'N/A'}
@@ -289,7 +295,7 @@ export function Devices() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleEdit(device)}
                         className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"

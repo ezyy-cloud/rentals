@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { accessoriesService, deviceTypesService } from '@/lib/supabase-service'
 import { storageService } from '@/lib/storage-service'
 import type { Accessory, DeviceType } from '@/lib/supabase-types'
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { X, Edit, Trash2, Upload } from 'lucide-react'
 
 export function Accessories() {
+  const navigate = useNavigate()
   const [accessories, setAccessories] = useState<Accessory[]>([])
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([])
   const [loading, setLoading] = useState(true)
@@ -404,7 +406,11 @@ export function Accessories() {
                 ).filter(Boolean) as DeviceType[]
                 
                 return (
-                <tr key={accessory.id} className="hover:bg-gray-50">
+                <tr 
+                  key={accessory.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/accessories/${accessory.id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">{accessory.name}</td>
                   <td className="px-6 py-4">{accessory.description ?? 'N/A'}</td>
                     <td className="px-6 py-4">
@@ -426,7 +432,7 @@ export function Accessories() {
                   <td className="px-6 py-4 whitespace-nowrap">{accessory.quantity}</td>
                     <td className="px-6 py-4 whitespace-nowrap">${accessory.rental_rate.toFixed(2)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleEdit(accessory)}
                         className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { rentalsService, usersService, devicesService, accessoriesService } from '@/lib/supabase-service'
 import type { Rental, User, Device, Accessory } from '@/lib/supabase-types'
 import { Button } from '@/components/ui/button'
-import { X, Edit, Trash2, CheckCircle, Download, Printer, Truck, Search, ArrowUpDown } from 'lucide-react'
+import { X, Edit, Trash2, CheckCircle, Download, Printer, Truck, Search, ArrowUpDown, MoreVertical } from 'lucide-react'
 import { downloadRentalPDF, printRentalPDF, downloadAllRentalsPDF, printAllRentalsPDF } from '@/lib/pdf-utils'
 import { TableSkeleton } from '@/components/SkeletonLoader'
 import { ErrorMessage } from '@/components/ErrorMessage'
@@ -13,6 +14,7 @@ type SortOrder = 'asc' | 'desc'
 type FilterStatus = 'all' | 'active' | 'returned' | 'overdue'
 
 export function Rentals() {
+  const navigate = useNavigate()
   const { showSuccess, showError } = useToast()
   const [rentals, setRentals] = useState<Rental[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -27,6 +29,7 @@ export function Rentals() {
   const [filterDelivery, setFilterDelivery] = useState<'all' | 'collection' | 'shipping'>('all')
   const [showForm, setShowForm] = useState(false)
   const [editingRental, setEditingRental] = useState<Rental | null>(null)
+  const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     user_id: '',
     device_id: '',
@@ -41,6 +44,7 @@ export function Rentals() {
     shipping_address: '',
   })
   const [selectedAccessories, setSelectedAccessories] = useState<{ accessory_id: string; quantity: number }[]>([])
+  const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
     loadRentals()
@@ -48,6 +52,38 @@ export function Rentals() {
     loadDevices()
     loadAccessories()
   }, [])
+
+  // Handle edit query parameter
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (editId && rentals.length > 0) {
+      const rental = rentals.find(r => r.id === editId)
+      if (rental) {
+        setEditingRental(rental)
+        setFormData({
+          user_id: rental.user_id,
+          device_id: rental.device_id,
+          start_date: rental.start_date,
+          end_date: rental.end_date,
+          rate: rental.rate.toString(),
+          deposit: rental.deposit.toString(),
+          total_paid: rental.total_paid.toString(),
+          returned_date: rental.returned_date ?? '',
+          shipped_date: rental.shipped_date ?? '',
+          delivery_method: rental.delivery_method ?? 'collection',
+          shipping_address: rental.shipping_address ?? '',
+        })
+        const accessories = rental.accessories?.map((ra) => ({
+          accessory_id: ra.accessory_id,
+          quantity: ra.quantity,
+        })) ?? []
+        setSelectedAccessories(accessories)
+        setShowForm(true)
+        setSearchParams({}) // Clear the query parameter
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, rentals])
 
   const loadRentals = async () => {
     setLoading(true)
@@ -140,7 +176,8 @@ export function Rentals() {
   }
   }
 
-  const handleEdit = (rental: Rental) => {
+  const handleEdit = (rental: Rental, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     setEditingRental(rental)
     setFormData({
       user_id: rental.user_id,
@@ -163,7 +200,12 @@ export function Rentals() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleRowClick = (rentalId: string) => {
+    navigate(`/rentals/${rentalId}`)
+  }
+
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     if (confirm('Are you sure you want to delete this rental?')) {
       try {
         const { error } = await rentalsService.delete(id)
@@ -197,14 +239,26 @@ export function Rentals() {
     setEditingRental(null)
   }
 
-  const handleMarkAsReturned = async (rentalId: string) => {
+  const handleMarkAsReturned = async (rentalId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     const { error } = await rentalsService.markRentalAsReturned(rentalId)
-    if (!error) loadRentals()
+    if (!error) {
+      showSuccess('Rental marked as returned')
+      loadRentals()
+    } else {
+      showError(`Failed to mark as returned: ${error.message}`)
+    }
   }
 
-  const handleMarkAsShipped = async (rentalId: string) => {
+  const handleMarkAsShipped = async (rentalId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     const { error } = await rentalsService.markRentalAsShipped(rentalId)
-    if (!error) loadRentals()
+    if (!error) {
+      showSuccess('Rental marked as shipped')
+      loadRentals()
+    } else {
+      showError(`Failed to mark as shipped: ${error.message}`)
+    }
   }
 
   const addAccessory = () => {
@@ -610,7 +664,7 @@ export function Rentals() {
       </div>
 
       <div className="bg-white border-2 border-black rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-visible">
           <table className="w-full min-w-[800px]">
           <thead className="bg-black text-white">
             <tr>
@@ -618,10 +672,6 @@ export function Rentals() {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Device</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Start Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">End Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Delivery</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Rate</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Deposit</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Total Paid</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Shipped</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Returned</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Actions</th>
@@ -630,119 +680,164 @@ export function Rentals() {
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={11} className="px-6 py-8">
-                  <TableSkeleton rows={5} columns={11} />
+                <td colSpan={7} className="px-6 py-8">
+                  <TableSkeleton rows={5} columns={7} />
                 </td>
               </tr>
             ) : filteredAndSortedRentals.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   {rentals.length === 0 ? 'No rentals found' : 'No rentals match your search criteria'}
                 </td>
               </tr>
             ) : (
-              filteredAndSortedRentals.map((rental) => (
-                <tr key={rental.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {rental.user ? `${rental.user.first_name} ${rental.user.last_name}` : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {rental.device?.name ?? 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{rental.start_date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{rental.end_date}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
+              filteredAndSortedRentals.map((rental) => {
+                const primaryActions = [
+                  {
+                    label: 'Mark as Shipped',
+                    icon: Truck,
+                    onClick: (e: React.MouseEvent) => handleMarkAsShipped(rental.id, e),
+                    show: !rental.shipped_date && rental.delivery_method === 'shipping',
+                    className: 'text-blue-600',
+                  },
+                  {
+                    label: 'Mark as Returned',
+                    icon: CheckCircle,
+                    onClick: (e: React.MouseEvent) => handleMarkAsReturned(rental.id, e),
+                    show: !rental.returned_date,
+                    className: 'text-green-600',
+                  },
+                  {
+                    label: 'Download PDF',
+                    icon: Download,
+                    onClick: (e: React.MouseEvent) => {
+                      e.stopPropagation()
+                      downloadRentalPDF(rental)
+                    },
+                    show: true,
+                    className: 'text-blue-600',
+                  },
+                ].filter(action => action.show)
+
+                const secondaryActions = [
+                  {
+                    label: 'Print',
+                    icon: Printer,
+                    onClick: (e: React.MouseEvent) => {
+                      e.stopPropagation()
+                      printRentalPDF(rental)
+                    },
+                    className: 'text-blue-600',
+                  },
+                  {
+                    label: 'Edit',
+                    icon: Edit,
+                    onClick: (e: React.MouseEvent) => handleEdit(rental, e),
+                    className: 'text-black',
+                  },
+                  {
+                    label: 'Delete',
+                    icon: Trash2,
+                    onClick: (e: React.MouseEvent) => handleDelete(rental.id, e),
+                    className: 'text-red-600',
+                  },
+                ]
+
+                // Show first 2 actions in row, rest in dropdown
+                const visibleActions = primaryActions.slice(0, 2)
+                const dropdownActions = [...primaryActions.slice(2), ...secondaryActions]
+
+                return (
+                  <tr
+                    key={rental.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleRowClick(rental.id)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {rental.user ? `${rental.user.first_name} ${rental.user.last_name}` : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {rental.device?.name ?? 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{rental.start_date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{rental.end_date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {rental.shipped_date ? (
+                        <span className="text-sm text-blue-600">{rental.shipped_date}</span>
+                      ) : rental.delivery_method === 'shipping' ? (
+                        <span className="text-sm text-purple-600 font-semibold">Pending Shipment</span>
+                      ) : (
+                        <span className="text-sm text-gray-400">Not shipped</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {rental.returned_date ? (
+                        <span className="text-sm text-green-600">{rental.returned_date}</span>
+                      ) : (
+                        <span className="text-sm text-gray-400">Not returned</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${rental.delivery_method === 'shipping' ? 'text-blue-600' : 'text-gray-700'}`}>
-                          {rental.delivery_method === 'shipping' ? 'Shipping' : 'Collection'}
-                        </span>
-                        {rental.delivery_method === 'shipping' && !rental.shipped_date && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800" title="Pending shipment">
-                            ⚠️
-                          </span>
+                        {visibleActions.map((action, index) => {
+                          const Icon = action.icon
+                          return (
+                            <button
+                              key={index}
+                              onClick={action.onClick}
+                              className={`p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center ${action.className}`}
+                              title={action.label}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </button>
+                          )
+                        })}
+
+                        {dropdownActions.length > 0 && (
+                          <div className="relative z-[10000]">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOpenActionsMenu(openActionsMenu === rental.id ? null : rental.id)
+                              }}
+                              className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
+                              title="More actions"
+                            >
+                              <MoreVertical className="w-4 h-4 text-gray-600" />
+                            </button>
+
+                            {openActionsMenu === rental.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[9998]"
+                                  onClick={() => setOpenActionsMenu(null)}
+                                />
+                                <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black rounded-lg shadow-lg z-[9999]">
+                                  <div className="py-1">
+                                    {dropdownActions.map((action, index) => {
+                                      const Icon = action.icon
+                                      return (
+                                        <button
+                                          key={index}
+                                          onClick={action.onClick}
+                                          className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 ${action.className}`}
+                                        >
+                                          <Icon className="w-4 h-4" />
+                                          {action.label}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
-                      {rental.delivery_method === 'shipping' && rental.shipping_address && (
-                        <span className="text-xs text-gray-500 mt-1" title={rental.shipping_address}>
-                          {rental.shipping_address.length > 30 
-                            ? `${rental.shipping_address.substring(0, 30)}...` 
-                            : rental.shipping_address}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">${rental.rate.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">${rental.deposit.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">${rental.total_paid.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {rental.shipped_date ? (
-                      <span className="text-sm text-blue-600">{rental.shipped_date}</span>
-                    ) : rental.delivery_method === 'shipping' ? (
-                      <span className="text-sm text-purple-600 font-semibold">Pending Shipment</span>
-                    ) : (
-                      <span className="text-sm text-gray-400">Not shipped</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {rental.returned_date ? (
-                      <span className="text-sm text-green-600">{rental.returned_date}</span>
-                    ) : (
-                      <span className="text-sm text-gray-400">Not returned</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-2 flex-wrap">
-                      {!rental.shipped_date && (
-                        <button
-                          onClick={() => handleMarkAsShipped(rental.id)}
-                          className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-                          title="Mark as Shipped"
-                        >
-                          <Truck className="w-4 h-4 text-blue-600" />
-                        </button>
-                      )}
-                      {!rental.returned_date && (
-                        <button
-                          onClick={() => handleMarkAsReturned(rental.id)}
-                          className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-                          title="Mark as Returned"
-                        >
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => downloadRentalPDF(rental)}
-                        className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-                        title="Download PDF"
-                      >
-                        <Download className="w-4 h-4 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => printRentalPDF(rental)}
-                        className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-                        title="Print"
-                      >
-                        <Printer className="w-4 h-4 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(rental)}
-                        className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4 text-black" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(rental.id)}
-                        className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>

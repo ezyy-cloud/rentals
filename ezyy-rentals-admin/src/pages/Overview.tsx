@@ -27,7 +27,6 @@ export function Overview() {
     overdueRentals: 0,
     upcomingReturns: 0,
     unreadNotifications: 0,
-    lowStockAccessories: 0,
     devicesWithSubscriptionIssues: 0,
   })
   const [revenue, setRevenue] = useState({
@@ -38,6 +37,7 @@ export function Overview() {
     totalDeposits: 0,
   })
   const [recentRentals, setRecentRentals] = useState<Rental[]>([])
+  const [deviceTypeStats, setDeviceTypeStats] = useState<Array<{ deviceType: { id: string; name: string }, total: number; available: number }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -86,8 +86,41 @@ export function Overview() {
       const rentedDeviceIds = new Set(
         activeRentals.map(r => r.device_id)
       )
-      const availableDevices = devices.filter(d => !rentedDeviceIds.has(d.id) && d.working_state === 'Working').length
+      
+      // Calculate available devices (not rented, working, subscription paid if required)
+      const availableDevices = devices.filter(d => {
+        if (rentedDeviceIds.has(d.id)) return false
+        if (d.working_state !== 'Working') return false
+        // Check subscription if required
+        if (d.device_type?.has_subscription) {
+          if (!d.subscription_date) return false
+          const subscriptionDate = new Date(d.subscription_date)
+          subscriptionDate.setHours(0, 0, 0, 0)
+          if (subscriptionDate < today) return false
+        }
+        return true
+      }).length
+      
       const rentedDevices = rentedDeviceIds.size
+      
+      // Calculate device counts per device type
+      const deviceTypeStatsData = deviceTypes.map(deviceType => {
+        const typeDevices = devices.filter(d => d.device_type_id === deviceType.id)
+        const total = typeDevices.length
+        const available = typeDevices.filter(d => {
+          if (rentedDeviceIds.has(d.id)) return false
+          if (d.working_state !== 'Working') return false
+          // Check subscription if required
+          if (deviceType.has_subscription) {
+            if (!d.subscription_date) return false
+            const subscriptionDate = new Date(d.subscription_date)
+            subscriptionDate.setHours(0, 0, 0, 0)
+            if (subscriptionDate < today) return false
+          }
+          return true
+        }).length
+        return { deviceType: { id: deviceType.id, name: deviceType.name }, total, available }
+      })
 
       // Check for devices with subscription issues
       const devicesWithSubscriptionIssues = devices.filter((device) => {
@@ -118,8 +151,6 @@ export function Overview() {
         endDate.setHours(0, 0, 0, 0)
         return endDate >= today && endDate <= sevenDaysFromNow
       }).length
-
-      const lowStockAccessories = accessories.filter(a => a.quantity <= 5).length
 
       // Get unread notifications count
       const { count: unreadNotifications } = await notificationsService.getUnreadCount()
@@ -194,7 +225,6 @@ export function Overview() {
         overdueRentals,
         upcomingReturns,
         unreadNotifications: unreadNotifications ?? 0,
-        lowStockAccessories,
         devicesWithSubscriptionIssues,
       })
       setRevenue({
@@ -205,6 +235,7 @@ export function Overview() {
         totalDeposits,
       })
       setRecentRentals(recent)
+      setDeviceTypeStats(deviceTypeStatsData)
     } catch (err) {
       const errorMsg = 'Failed to load overview data. Please try again.'
       setError(errorMsg)
@@ -223,7 +254,7 @@ export function Overview() {
     })
   }
 
-  const totalAlerts = alerts.pendingShipments + alerts.overdueRentals + alerts.devicesWithSubscriptionIssues + alerts.lowStockAccessories
+  const totalAlerts = alerts.pendingShipments + alerts.overdueRentals + alerts.devicesWithSubscriptionIssues
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -274,17 +305,6 @@ export function Overview() {
                     <p className="text-2xl font-bold text-red-600">{alerts.devicesWithSubscriptionIssues}</p>
                   </div>
                   <AlertTriangle className="w-8 h-8 text-red-400" />
-                </div>
-              </div>
-            )}
-            {alerts.lowStockAccessories > 0 && (
-              <div className="bg-white border-2 border-red-300 p-3 rounded">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Low Stock Items</p>
-                    <p className="text-2xl font-bold text-red-600">{alerts.lowStockAccessories}</p>
-                  </div>
-                  <Package className="w-8 h-8 text-red-400" />
                 </div>
               </div>
             )}
@@ -380,66 +400,79 @@ export function Overview() {
       {/* Detailed Stats Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
-              <Users className="w-5 h-5 text-gray-400" />
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
+                <Users className="w-5 h-5 text-gray-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalUsers}</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalUsers}</p>
-          </div>
-          <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600">Total Devices</h3>
-              <Smartphone className="w-5 h-5 text-gray-400" />
+            <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Total Devices</h3>
+                <Smartphone className="w-5 h-5 text-gray-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalDevices}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {stats.workingDevices} working, {stats.nonWorkingDevices} needs repair
+              </p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalDevices}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {stats.workingDevices} working, {stats.nonWorkingDevices} needs repair
-            </p>
+            <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Accessories</h3>
+                <Package className="w-5 h-5 text-gray-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalAccessories}</p>
+            </div>
+            <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Total Rentals</h3>
+                <Calendar className="w-5 h-5 text-gray-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalRentals}</p>
+            </div>
+            <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Device Status</h3>
+                <TrendingUp className="w-5 h-5 text-gray-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-black">
+                {stats.totalDevices > 0 
+                  ? Math.round((stats.workingDevices / stats.totalDevices) * 100)
+                  : 0}%
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Devices operational</p>
+            </div>
           </div>
+          
+          {/* Device Types Breakdown - Own Row */}
           <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600">Device Types</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg sm:text-xl font-bold text-black">Device Types Breakdown</h3>
               <Tag className="w-5 h-5 text-gray-400" />
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalDeviceTypes}</p>
-          </div>
-          <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600">Accessories</h3>
-              <Package className="w-5 h-5 text-gray-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalAccessories}</p>
-            {alerts.lowStockAccessories > 0 && (
-              <p className="text-xs text-red-600 mt-1">{alerts.lowStockAccessories} low stock</p>
+            {deviceTypeStats.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {deviceTypeStats.map(({ deviceType, total, available }) => (
+                  <div key={deviceType.id} className="border-2 border-gray-200 rounded p-3">
+                    <p className="text-sm font-medium text-black mb-1">{deviceType.name}</p>
+                    <p className="text-lg font-bold text-black">{available}/{total}</p>
+                    <p className="text-xs text-gray-500">available/total</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No device types found</p>
             )}
           </div>
-          <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600">Total Rentals</h3>
-              <Calendar className="w-5 h-5 text-gray-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold text-black">{stats.totalRentals}</p>
-          </div>
-          <div className="bg-white border-2 border-black p-4 sm:p-6 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-600">Device Status</h3>
-              <TrendingUp className="w-5 h-5 text-gray-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold text-black">
-              {stats.totalDevices > 0 
-                ? Math.round((stats.workingDevices / stats.totalDevices) * 100)
-                : 0}%
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Devices operational</p>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Recent Activity */}

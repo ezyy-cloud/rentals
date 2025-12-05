@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { usersService } from '@/lib/supabase-service'
 import type { User } from '@/lib/supabase-types'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ type SortField = 'name' | 'email' | 'created_at'
 type SortOrder = 'asc' | 'desc'
 
 export function Users() {
+  const navigate = useNavigate()
   const { showSuccess, showError, showUndo } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -448,7 +450,11 @@ export function Users() {
               </tr>
             ) : (
               filteredAndSortedUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr 
+                  key={user.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/users/${user.id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     {user.first_name} {user.last_name}
                   </td>
@@ -456,7 +462,7 @@ export function Users() {
                   <td className="px-6 py-4 whitespace-nowrap">{user.telephone}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{user.id_number}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleEdit(user)}
                         className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
