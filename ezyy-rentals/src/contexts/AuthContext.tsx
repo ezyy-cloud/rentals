@@ -75,30 +75,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Wait a moment for any database triggers to complete
-    await new Promise(resolve => setTimeout(resolve, 500))
+    if (authData.session) {
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
-    // Create user record in users table
-    // The RLS policy should allow this for authenticated users
-    const { error: userError } = await usersService.create({
-      ...userData,
-      email,
-    })
+      // Create user record in users table
+      // The RLS policy should allow this for authenticated users
+      const { error: userError } = await usersService.create({
+        ...userData,
+        email,
+      })
 
-    if (userError) {
-      // Check if user was created by trigger
-      const { data: existingUser } = await usersService.getByEmail(email)
-      if (existingUser) {
-        // User exists (created by trigger), just load it
-        await loadAppUser(email)
-        return { error: null }
+      if (userError) {
+        // Check if user was created by trigger
+        const { data: existingUser } = await usersService.getByEmail(email)
+        if (existingUser) {
+          // User exists (created by trigger), just load it
+          await loadAppUser(email)
+          return { error: null }
+        }
+        // User creation failed and user doesn't exist - clean up auth user
+        await supabase.auth.signOut()
+        return { error: userError }
       }
-      // User creation failed and user doesn't exist - clean up auth user
-      await supabase.auth.signOut()
-      return { error: userError }
-    }
 
-    // Load the created user
-    await loadAppUser(email)
+      // Load the created user
+      await loadAppUser(email)
+    }
 
     return { error: null }
   }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { UserPlus, ChevronRight, ChevronLeft } from 'lucide-react'
 
@@ -120,7 +121,12 @@ export function SignUp() {
         showError(errorMsg)
       } else {
         localStorage.removeItem(SIGNUP_STORAGE_KEY)
-        showSuccess('Account created successfully!')
+        const { data } = await supabase.auth.getSession()
+        if (data.session) {
+          showSuccess('Account created successfully!')
+        } else {
+          showSuccess('Account created! Please check your email to confirm.')
+        }
         navigate('/')
       }
     } catch (err) {
