@@ -4,8 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Exclude Supabase public keys from secrets scanning (these are public anon keys, not secrets)
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
+  # Exclude .env.example files from secrets scanning (template files)
+  SECRETS_SCAN_OMIT_PATHS = ".env.example"
 
 [[redirects]]
   from = "/*"
