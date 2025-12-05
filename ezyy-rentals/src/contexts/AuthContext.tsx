@@ -28,13 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadAppUser = async (email: string) => {
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout loading user')), 10000)
-      )
+      // Add timeout to prevent hanging (10 seconds)
+      const timeoutId = setTimeout(() => {
+        console.warn('loadAppUser is taking longer than expected')
+      }, 10000)
       
-      const userPromise = usersService.getByEmail(email)
-      const { data } = await Promise.race([userPromise, timeoutPromise]) as Awaited<ReturnType<typeof userPromise>>
+      const { data } = await usersService.getByEmail(email)
+      clearTimeout(timeoutId)
       
       if (data) {
         setAppUser(data)
