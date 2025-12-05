@@ -6,6 +6,9 @@
   NODE_VERSION = "20"
   # Exclude .env.example files from secrets scanning (template files)
   SECRETS_SCAN_OMIT_PATHS = ".env.example"
+  # Exclude Supabase public keys from secrets scanning (these are public anon keys, not secrets)
+  # VITE_ prefixed variables are intentionally exposed to client-side code
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
 
 [[redirects]]
   from = "/*"
