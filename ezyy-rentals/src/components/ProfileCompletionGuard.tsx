@@ -17,8 +17,8 @@ export function ProfileCompletionGuard({ children }: ProfileCompletionGuardProps
   const location = useLocation()
 
   useEffect(() => {
-    // Don't redirect if still loading
-    if (loading) {
+    // Don't redirect if still loading or if no user
+    if (loading || !appUser) {
       return
     }
 
@@ -31,17 +31,13 @@ export function ProfileCompletionGuard({ children }: ProfileCompletionGuardProps
     }
 
     // If user exists but profile is incomplete, redirect to profile
-    if (appUser && !isProfileComplete(appUser)) {
+    if (!isProfileComplete(appUser)) {
       navigate('/profile', { replace: true })
     }
   }, [appUser, loading, navigate, location.pathname])
 
-  // If profile is incomplete and we're not on profile page or public route, show loading
-  // (redirect will happen in useEffect)
-  const publicRoutes = ['/', '/device', '/cart', '/login', '/signup']
-  const isPublicRoute = publicRoutes.some(route => location.pathname.startsWith(route))
-  
-  if (appUser && !isProfileComplete(appUser) && location.pathname !== '/profile' && !isPublicRoute) {
+  // Show loading only if we're actually loading
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-lg text-black">Loading...</div>
