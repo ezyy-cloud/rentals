@@ -15,7 +15,7 @@ import { CheckCircle, ArrowLeft, ChevronRight, ChevronLeft } from 'lucide-react'
 export function Checkout() {
   const navigate = useNavigate()
   const { showSuccess, showError } = useToast()
-  const { items, clearCart, getTotalCost } = useCart()
+  const { items, clearCart } = useCart()
   const { appUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)

@@ -11,7 +11,7 @@ import { Trash2, ShoppingBag, ArrowRight, Heart, RotateCcw, Package } from 'luci
 export function Cart() {
   const navigate = useNavigate()
   const { showSuccess } = useToast()
-  const { items, savedForLater, lastRemovedItem, removeItem, updateItem, getTotalCost, saveForLater, moveToCart, undoRemove } = useCart()
+  const { items, savedForLater, lastRemovedItem, removeItem, updateItem, saveForLater, moveToCart, undoRemove } = useCart()
   const [accessories, setAccessories] = useState<Accessory[]>([])
 
   useEffect(() => {

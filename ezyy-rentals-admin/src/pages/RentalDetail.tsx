@@ -261,7 +261,7 @@ export function RentalDetail() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
-              <p className="text-base text-black">{rental.user?.phone ?? 'N/A'}</p>
+              <p className="text-base text-black">{rental.user?.telephone ?? 'N/A'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">ID Number</label>
@@ -283,8 +283,8 @@ export function RentalDetail() {
               <p className="text-base text-black">{rental.device?.device_type?.name ?? 'N/A'}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Serial Number</label>
-              <p className="text-base text-black">{rental.device?.serial_number ?? 'N/A'}</p>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Condition</label>
+              <p className="text-base text-black">{rental.device?.condition ?? 'N/A'}</p>
             </div>
           </div>
         </div>

@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes - this fires immediately with current session
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return
 
       try {
