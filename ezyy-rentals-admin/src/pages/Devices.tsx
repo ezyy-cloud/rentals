@@ -168,18 +168,14 @@ export function Devices() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-1">Condition</label>
-                <select
+                <input
+                  type="text"
                   required
                   value={formData.condition}
                   onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                   className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
-                >
-                  <option value="">Select condition</option>
-                  <option value="Excellent">Excellent</option>
-                  <option value="Good">Good</option>
-                  <option value="Fair">Fair</option>
-                  <option value="Poor">Poor</option>
-                </select>
+                  placeholder="e.g., Excellent, Good, Fair"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-1">Working State</label>

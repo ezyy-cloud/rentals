@@ -30,15 +30,15 @@ export function MobileBottomNav() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center flex-1 h-full relative ${
+              className={`flex flex-col items-center justify-center flex-1 h-full ${
                 isActive ? 'text-black' : 'text-gray-600'
               }`}
               aria-label={item.label}
             >
-              <div className="relative inline-block">
+              <div className="relative">
                 <Icon className="w-6 h-6" />
                 {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 z-10 border-2 border-white">
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {item.badge > 9 ? '9+' : item.badge}
                   </span>
                 )}

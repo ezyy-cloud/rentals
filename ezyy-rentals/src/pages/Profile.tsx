@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { usersService } from '@/lib/services'
-import { isProfileComplete } from '@/lib/profile-utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { User, Save, AlertCircle } from 'lucide-react'
+import { User, Save } from 'lucide-react'
 
 export function Profile() {
   const { appUser, refreshAppUser } = useAuth()
@@ -63,11 +62,6 @@ export function Profile() {
         setSuccess(true)
         showSuccess('Profile updated successfully!')
         await refreshAppUser()
-        // Clear the needs_profile_completion flag if profile is now complete
-        const updatedUser = { ...appUser, ...formData }
-        if (isProfileComplete(updatedUser as typeof appUser)) {
-          sessionStorage.removeItem('needs_profile_completion')
-        }
         setTimeout(() => setSuccess(false), 3000)
       }
     } catch (err) {
@@ -110,16 +104,6 @@ export function Profile() {
       {error && (
         <div className="bg-red-50 border-2 border-red-500 text-red-700 px-4 py-3 rounded">
           {error}
-        </div>
-      )}
-
-      {!isProfileComplete(appUser) && (
-        <div className="bg-yellow-50 border-2 border-yellow-500 text-yellow-800 px-4 py-3 rounded flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold mb-1">Profile Incomplete</p>
-            <p className="text-sm">Please complete all required fields (marked with *) to continue using the platform.</p>
-          </div>
         </div>
       )}
 

@@ -22,18 +22,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        setSession(session)
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('Error loading initial session:', error)
+      } finally {
+        setLoading(false)
+      }
     })
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        setSession(session)
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('Error handling auth change:', error)
+      } finally {
+        setLoading(false)
+      }
     })
 
     return () => subscription.unsubscribe()
