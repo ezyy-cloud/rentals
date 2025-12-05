@@ -61,6 +61,7 @@ export function Accessories() {
       quantity: parseInt(formData.quantity),
         rental_rate: parseFloat(formData.rental_rate),
         images: imageUrls,
+        device_type_id: null, // Using junction table now, but keeping for backward compatibility
         device_type_ids: selectedDeviceTypeIds,
     }
       

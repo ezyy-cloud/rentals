@@ -2,10 +2,9 @@ import { CheckCircle } from 'lucide-react'
 
 interface CheckoutStepsProps {
   currentStep: number
-  totalSteps: number
 }
 
-export function CheckoutSteps({ currentStep, totalSteps }: CheckoutStepsProps) {
+export function CheckoutSteps({ currentStep }: CheckoutStepsProps) {
   const steps = ['Review Order', 'Delivery', 'Payment', 'Confirmation']
 
   return (

@@ -9,7 +9,6 @@ import { User, Save } from 'lucide-react'
 export function Profile() {
   const { appUser, refreshAppUser } = useAuth()
   const { showSuccess, showError } = useToast()
-  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -47,7 +47,9 @@ export function QuickViewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={onClose}>
       <Card
         className="max-w-4xl w-full max-h-[90vh] overflow-y-auto bg-white"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e?.stopPropagation()
+        }}
       >
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">

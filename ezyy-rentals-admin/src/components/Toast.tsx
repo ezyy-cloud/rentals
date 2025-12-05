@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, RotateCcw } from 'lucide-react'
 import { useToast, type Toast } from '@/contexts/ToastContext'
 import { Button } from './ui/button'

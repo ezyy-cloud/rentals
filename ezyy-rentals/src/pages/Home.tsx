@@ -7,10 +7,9 @@ import { HeroSection } from '@/components/HeroSection'
 import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
 import { Button } from '@/components/ui/Button'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { DeviceCardSkeleton } from '@/components/SkeletonLoader'
 import { ErrorMessage } from '@/components/ErrorMessage'
-import { Search, Filter, CheckCircle, ArrowUpDown, X } from 'lucide-react'
+import { Search, Filter, ArrowUpDown, X } from 'lucide-react'
 
 type SortOption = 'name' | 'price-low' | 'price-high' | 'availability'
 

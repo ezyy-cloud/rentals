@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { deviceTypesService, devicesService, accessoriesService } from '@/lib/services'
-import type { DeviceType, Accessory, DeviceTypeAvailability } from '@/lib/types'
+import type { DeviceType, Accessory } from '@/lib/types'
 import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Skeleton } from '@/components/SkeletonLoader'
 import { ShareButton } from '@/components/ShareButton'
 import { ShoppingCart, ArrowLeft } from 'lucide-react'
@@ -384,7 +383,7 @@ export function DeviceDetail({ deviceId }: { deviceId: string }) {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
-                  ${cost.perUnit.total.toFixed(2)} per unit
+                  ${cost.perUnit?.total.toFixed(2) ?? '0.00'} per unit
                 </p>
                 <div className="flex justify-between text-lg font-bold border-t-2 border-black pt-2">
                   <span className="text-black">Total:</span>

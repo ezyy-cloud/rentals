@@ -1,4 +1,4 @@
-import { Component, ReactNode } from 'react'
+import { Component, type ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
 import { AlertTriangle } from 'lucide-react'
 

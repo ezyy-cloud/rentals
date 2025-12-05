@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
-import { rentalsService, accessoriesService, devicesService } from '@/lib/services'
+import { rentalsService, accessoriesService } from '@/lib/services'
 import { supabase } from '@/lib/supabase'
 import type { Accessory } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
@@ -34,9 +34,6 @@ export function Checkout() {
     if (data) setAccessories(data)
   }
 
-  const getAccessoryName = (accessoryId: string) => {
-    return accessories.find((a) => a.id === accessoryId)?.name ?? accessoryId
-  }
 
   const calculateItemCost = (item: typeof items[0]) => {
     const deviceType = item.device_type
@@ -167,6 +164,8 @@ export function Checkout() {
                 total_paid: costPerUnit.total, // Per unit cost
                 delivery_method: deliveryMethod,
                 shipping_address: deliveryMethod === 'shipping' ? (shippingAddress || appUser.address) : null,
+                returned_date: null,
+                shipped_date: null,
           },
           item.accessories
         )
@@ -260,7 +259,7 @@ export function Checkout() {
         <p className="text-gray-600">Review your order and complete your rental</p>
       </div>
 
-      <CheckoutSteps currentStep={currentStep} totalSteps={4} />
+      <CheckoutSteps currentStep={currentStep} />
 
       {error && (
         <ErrorMessage message={error} />

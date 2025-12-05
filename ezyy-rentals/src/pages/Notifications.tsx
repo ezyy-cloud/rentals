@@ -4,7 +4,6 @@ import { notificationsService } from '@/lib/services'
 import type { Notification } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Skeleton } from '@/components/SkeletonLoader'
 import { Bell, CheckCircle, AlertCircle, Clock } from 'lucide-react'
 

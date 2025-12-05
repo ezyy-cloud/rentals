@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { User, DeviceType, Device, Accessory, Rental, RentalAccessory, Notification } from './types'
+import type { User, DeviceType, Device, Rental } from './types'
 
 // Device Types
 export const deviceTypesService = {

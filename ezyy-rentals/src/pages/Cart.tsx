@@ -6,8 +6,6 @@ import { accessoriesService } from '@/lib/services'
 import type { Accessory } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
-import { CartItemSkeleton } from '@/components/SkeletonLoader'
 import { Trash2, ShoppingBag, ArrowRight, Heart, RotateCcw, Package } from 'lucide-react'
 
 export function Cart() {
@@ -25,9 +23,6 @@ export function Cart() {
     if (data) setAccessories(data)
   }
 
-  const getAccessoryName = (accessoryId: string) => {
-    return accessories.find((a) => a.id === accessoryId)?.name ?? accessoryId
-  }
 
   const calculateItemCost = (item: typeof items[0]) => {
     const deviceType = item.device_type

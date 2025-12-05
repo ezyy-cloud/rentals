@@ -19,7 +19,6 @@ export function ErrorMessage({ message, onRetry, className = '' }: ErrorMessageP
               onClick={onRetry}
               variant="outline"
               className="mt-3 border-red-500 text-red-700 hover:bg-red-100"
-              size="sm"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Retry

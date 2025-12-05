@@ -1,9 +1,9 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 interface CardProps {
   children: ReactNode
   className?: string
-  onClick?: () => void
+  onClick?: (e?: React.MouseEvent) => void
 }
 
 export function Card({ children, className = '', onClick }: CardProps) {

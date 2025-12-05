@@ -4,9 +4,8 @@ import { rentalsService } from '@/lib/services'
 import type { Rental } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Skeleton } from '@/components/SkeletonLoader'
-import { Calendar, Package, DollarSign, TrendingUp, Clock } from 'lucide-react'
+import { Calendar, Package, DollarSign, Clock } from 'lucide-react'
 
 export function MyRentals() {
   const { appUser } = useAuth()
