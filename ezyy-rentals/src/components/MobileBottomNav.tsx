@@ -1,16 +1,17 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Home, ShoppingBag, Package, Bell, User } from 'lucide-react'
-import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCart } from '@/contexts/CartContext'
 
 export function MobileBottomNav() {
   const location = useLocation()
-  const { getItemCount } = useCart()
   const { user } = useAuth()
+  const { getItemCount } = useCart()
+  const cartItemCount = getItemCount()
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
-    { path: '/cart', icon: ShoppingBag, label: 'Cart', badge: getItemCount() },
+    { path: '/cart', icon: ShoppingBag, label: 'Cart' },
     ...(user
       ? [
           { path: '/rentals', icon: Package, label: 'Rentals' },
@@ -37,10 +38,8 @@ export function MobileBottomNav() {
             >
               <div className="relative">
                 <Icon className="w-6 h-6" />
-                {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {item.badge > 9 ? '9+' : item.badge}
-                  </span>
+                {item.path === '/cart' && cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 rounded-full w-2.5 h-2.5" />
                 )}
               </div>
               <span className="text-xs mt-1">{item.label}</span>

@@ -286,7 +286,7 @@ export function Layout({ children }: LayoutProps) {
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20 md:pb-8">
+      <main className="max-w-7xl sm:mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20 md:pb-8">
         {children}
       </main>
 

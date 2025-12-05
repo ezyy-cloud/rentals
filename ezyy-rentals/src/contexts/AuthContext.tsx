@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { usersService } from '@/lib/services'
@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session>(null)
   const [appUser, setAppUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const hasSetLoadingRef = useRef(false)
 
   const loadAppUser = async (email: string) => {
     try {
@@ -39,42 +40,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      try {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user?.email) {
-          await loadAppUser(session.user.email)
-        }
-      } catch (e) {
-        console.error('Error loading initial session:', e)
-      } finally {
-        setLoading(false)
-      }
-    })
+  const setLoadingOnce = () => {
+    if (!hasSetLoadingRef.current) {
+      hasSetLoadingRef.current = true
+      setLoading(false)
+    }
+  }
 
-    // Listen for auth changes
+  useEffect(() => {
+    let mounted = true
+
+    // Listen for auth changes - this fires immediately with current session
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+
       try {
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user?.email) {
-          await loadAppUser(session.user.email)
+          // Load app user in background - don't block on this
+          loadAppUser(session.user.email).catch(e => {
+            console.error('Error loading app user:', e)
+          })
         } else {
           setAppUser(null)
         }
       } catch (e) {
         console.error('Error handling auth change:', e)
       } finally {
-        setLoading(false)
+        // Only set loading to false once, on the first auth state change
+        setLoadingOnce()
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signUp = async (
@@ -91,33 +95,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: authError ?? new Error('Failed to create account') }
     }
 
-    // Wait a moment for any database triggers to complete
-    if (authData.session) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
+    // Create user record in users table
+    const { error: userError } = await usersService.create({
+      ...userData,
+      email,
+    })
 
-      // Create user record in users table
-      // The RLS policy should allow this for authenticated users
-      const { error: userError } = await usersService.create({
-        ...userData,
-        email,
-      })
-
-      if (userError) {
-        // Check if user was created by trigger
-        const { data: existingUser } = await usersService.getByEmail(email)
-        if (existingUser) {
-          // User exists (created by trigger), just load it
-          await loadAppUser(email)
-          return { error: null }
-        }
-        // User creation failed and user doesn't exist - clean up auth user
-        await supabase.auth.signOut()
-        return { error: userError }
-      }
-
-      // Load the created user
-      await loadAppUser(email)
+    if (userError) {
+      // If user creation fails, we should clean up the auth user
+      await supabase.auth.signOut()
+      return { error: userError }
     }
+
+    // Load the created user
+    await loadAppUser(email)
 
     return { error: null }
   }

@@ -196,7 +196,11 @@ export function Checkout() {
     }
   }
 
-  const totalCost = getTotalCost()
+  // Calculate total using calculateItemCost to include accessories
+  const totalCost = items.reduce((total, item) => {
+    const cost = calculateItemCost(item)
+    return total + cost.total
+  }, 0)
 
   if (success) {
     return (
@@ -423,7 +427,7 @@ export function Checkout() {
 
         {/* Sticky Order Summary Sidebar */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-4">
+          <Card className="sticky top-4 p-6">
             <h2 className="text-xl font-bold text-black mb-4">Order Summary</h2>
             <div className="space-y-3 mb-4">
               {items.map((item) => {

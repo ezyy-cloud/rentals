@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card'
 import { User, Save } from 'lucide-react'
 
 export function Profile() {
-  const { appUser, refreshAppUser } = useAuth()
+  const { appUser, refreshAppUser, loading: authLoading } = useAuth()
   const { showSuccess, showError } = useToast()
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -75,6 +75,17 @@ export function Profile() {
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin" />
+          <div className="text-lg text-black">Loading...</div>
+        </div>
+      </div>
+    )
   }
 
   if (!appUser) {

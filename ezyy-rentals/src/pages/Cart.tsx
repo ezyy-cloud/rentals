@@ -69,20 +69,69 @@ export function Cart() {
     }
   }
 
-  const totalCost = getTotalCost()
+  // Calculate total using calculateItemCost to include accessories
+  const totalCost = items.reduce((total, item) => {
+    const cost = calculateItemCost(item)
+    return total + cost.total
+  }, 0)
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12">
-        <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-black mb-2">Your cart is empty</h2>
-        <p className="text-gray-600 mb-4">Start browsing devices to add them to your cart</p>
-        <Button
-          onClick={() => navigate('/')}
-          className="bg-black text-white hover:bg-gray-800"
-        >
-          Browse Devices
-        </Button>
+      <div className="max-w-5xl lg:max-w-7xl mx-auto space-y-6">
+        <div className="text-center py-12">
+          <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-black mb-2">Your cart is empty</h2>
+          <p className="text-gray-600 mb-4">Start browsing devices to add them to your cart</p>
+          <Button
+            onClick={() => navigate('/')}
+            className="bg-black text-white hover:bg-gray-800 mx-auto"
+          >
+            Browse Devices
+          </Button>
+        </div>
+
+        {/* Saved for Later Section */}
+        {savedForLater.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-black mb-4">Saved for Later</h2>
+            <div className="space-y-4 lg:space-y-6">
+              {savedForLater.map((item) => {
+                const deviceType = item.device_type
+                return (
+                  <Card key={item.device_type_id} className="p-4 sm:p-6 lg:p-8">
+                    <div className="flex items-center justify-between gap-4 lg:gap-8">
+                      <div className="flex items-center gap-4 lg:gap-6 flex-1 min-w-0">
+                        {deviceType.images && deviceType.images.length > 0 && (
+                          <div className="w-20 h-20 lg:w-24 lg:h-24 flex-shrink-0 overflow-hidden rounded border-2 border-gray-200">
+                            <img
+                              src={deviceType.images[0]}
+                              alt={deviceType.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-black text-base lg:text-lg">{deviceType.name}</h3>
+                          <p className="text-sm lg:text-base text-gray-600">${deviceType.rental_rate.toFixed(2)}/day</p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          moveToCart(item.device_type_id)
+                          showSuccess('Item moved to cart')
+                        }}
+                        className="bg-black text-white hover:bg-gray-800 flex-shrink-0"
+                      >
+                        <Package className="w-4 h-4 mr-2" />
+                        Move to Cart
+                      </Button>
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -193,13 +242,38 @@ export function Cart() {
                             return (
                               <div
                                 key={accessory.id}
-                                className={`flex items-center gap-3 p-2 rounded border-2 ${
+                                className={`flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded border-2 ${
                                   selected ? 'border-black bg-gray-50' : 'border-gray-200'
                                 } ${!isAvailable ? 'opacity-50' : ''}`}
                               >
+                                {/* Checkbox - Far Left */}
+                                <input
+                                  type="checkbox"
+                                  checked={!!selected}
+                                  onChange={() => {
+                                    const currentAccessories = item.accessories || []
+                                    if (selected) {
+                                      // Remove accessory
+                                      const updated = currentAccessories.filter(
+                                        (a) => a.accessory_id !== accessory.id
+                                      )
+                                      updateItem(item.device_type_id, { accessories: updated })
+                                    } else {
+                                      // Add accessory
+                                      const updated = [
+                                        ...currentAccessories,
+                                        { accessory_id: accessory.id, quantity: 1 },
+                                      ]
+                                      updateItem(item.device_type_id, { accessories: updated })
+                                    }
+                                  }}
+                                  disabled={!isAvailable}
+                                  className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-black rounded flex-shrink-0 cursor-pointer"
+                                />
+                                
                                 {/* Accessory Image */}
                                 {accessory.images && accessory.images.length > 0 && (
-                                  <div className="w-12 h-12 flex-shrink-0 overflow-hidden rounded border border-gray-300">
+                                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 overflow-hidden rounded border border-gray-300">
                                     <img
                                       src={accessory.images[0]}
                                       alt={accessory.name}
@@ -211,36 +285,12 @@ export function Cart() {
                                   </div>
                                 )}
                                 
+                                {/* Name and Price */}
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <input
-                                      type="checkbox"
-                                      checked={!!selected}
-                                      onChange={() => {
-                                        const currentAccessories = item.accessories || []
-                                        if (selected) {
-                                          // Remove accessory
-                                          const updated = currentAccessories.filter(
-                                            (a) => a.accessory_id !== accessory.id
-                                          )
-                                          updateItem(item.device_type_id, { accessories: updated })
-                                        } else {
-                                          // Add accessory
-                                          const updated = [
-                                            ...currentAccessories,
-                                            { accessory_id: accessory.id, quantity: 1 },
-                                          ]
-                                          updateItem(item.device_type_id, { accessories: updated })
-                                        }
-                                      }}
-                                      disabled={!isAvailable}
-                                      className="w-4 h-4 border-2 border-black rounded"
-                                    />
-                                    <label className="text-sm font-medium text-black cursor-pointer flex-1">
-                                      {accessory.name}
-                                    </label>
-                                  </div>
-                                  <p className="text-xs text-gray-600 ml-6">
+                                  <label className="text-sm font-medium text-black cursor-pointer block">
+                                    {accessory.name}
+                                  </label>
+                                  <p className="text-xs text-gray-600">
                                     ${accessory.rental_rate.toFixed(2)}/day
                                     {!isAvailable && ' • Out of stock'}
                                   </p>
@@ -248,7 +298,7 @@ export function Cart() {
 
                                 {/* Quantity Selector */}
                                 {selected && isAvailable && (
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -260,7 +310,7 @@ export function Cart() {
                                         )
                                         updateItem(item.device_type_id, { accessories: updated })
                                       }}
-                                      className="w-6 h-6 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100"
+                                      className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 text-xs sm:text-sm"
                                     >
                                       −
                                     </button>
@@ -279,7 +329,7 @@ export function Cart() {
                                         )
                                         updateItem(item.device_type_id, { accessories: updated })
                                       }}
-                                      className="w-12 px-1 py-1 border-2 border-black rounded text-center text-sm"
+                                      className="w-8 sm:w-12 px-0.5 sm:px-1 py-0.5 sm:py-1 border-2 border-black rounded text-center text-xs sm:text-sm"
                                       aria-label={`${accessory.name} quantity`}
                                     />
                                     <button
@@ -294,7 +344,7 @@ export function Cart() {
                                         updateItem(item.device_type_id, { accessories: updated })
                                       }}
                                       disabled={selected.quantity >= accessory.quantity}
-                                      className="w-6 h-6 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
                                     >
                                       +
                                     </button>
@@ -394,12 +444,12 @@ export function Cart() {
                         variant="outline"
                         onClick={() => {
                           saveForLater(item.device_type_id)
-                          showSuccess('Item saved for later')
+                          showSuccess('Item saved')
                         }}
                         className="flex-1 border-gray-500 text-gray-700 hover:bg-gray-50"
                       >
                         <Heart className="w-4 h-4 mr-2" />
-                        Save for Later
+                        Save
                       </Button>
                     <Button
                       variant="outline"

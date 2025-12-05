@@ -15,3 +15,4 @@ CREATE POLICY "Allow authenticated to read users" ON users
   TO authenticated
   USING (auth.role() = 'authenticated');
 
+

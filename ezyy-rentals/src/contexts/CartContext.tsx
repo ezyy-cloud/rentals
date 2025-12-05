@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react'
 import type { CartItem, DeviceType } from '@/lib/types'
 
 interface CartContextType {
@@ -26,44 +26,73 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [savedForLater, setSavedForLater] = useState<CartItem[]>([])
   const [lastRemovedItem, setLastRemovedItem] = useState<CartItem | null>(null)
+  const isInitialLoad = useRef(true)
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem(CART_STORAGE_KEY)
-    if (savedCart) {
-      try {
-        const parsed = JSON.parse(savedCart)
-        // Migrate old cart format if needed
-        if (parsed.length > 0 && 'device_id' in parsed[0]) {
-          // Old format - clear it
+    try {
+      const savedCart = localStorage.getItem(CART_STORAGE_KEY)
+      if (savedCart) {
+        try {
+          const parsed = JSON.parse(savedCart)
+          // Migrate old cart format if needed
+          if (parsed.length > 0 && 'device_id' in parsed[0]) {
+            // Old format - clear it
+            localStorage.removeItem(CART_STORAGE_KEY)
+            setItems([])
+          } else if (Array.isArray(parsed) && parsed.length > 0) {
+            setItems(parsed)
+          }
+        } catch (error) {
+          console.error('Failed to parse cart from localStorage:', error)
+          // Clear corrupted data
           localStorage.removeItem(CART_STORAGE_KEY)
-          setItems([])
-        } else {
-        setItems(parsed)
         }
-      } catch (error) {
-        console.error('Failed to load cart from localStorage:', error)
       }
-    }
 
-    const saved = localStorage.getItem(SAVED_FOR_LATER_KEY)
-    if (saved) {
-      try {
-        setSavedForLater(JSON.parse(saved))
-      } catch (error) {
-        console.error('Failed to load saved items from localStorage:', error)
+      const saved = localStorage.getItem(SAVED_FOR_LATER_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSavedForLater(parsed)
+          }
+        } catch (error) {
+          console.error('Failed to parse saved items from localStorage:', error)
+          // Clear corrupted data
+          localStorage.removeItem(SAVED_FOR_LATER_KEY)
+        }
       }
+    } catch (error) {
+      console.error('Failed to access localStorage:', error)
+    } finally {
+      // Mark initial load as complete after a short delay to ensure state is set
+      setTimeout(() => {
+        isInitialLoad.current = false
+      }, 100)
     }
   }, [])
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes (but not during initial load)
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+    if (isInitialLoad.current) return
+    
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+    } catch (error) {
+      console.error('Failed to save cart to localStorage:', error)
+    }
   }, [items])
 
-  // Save savedForLater to localStorage whenever it changes
+  // Save savedForLater to localStorage whenever it changes (but not during initial load)
   useEffect(() => {
-    localStorage.setItem(SAVED_FOR_LATER_KEY, JSON.stringify(savedForLater))
+    if (isInitialLoad.current) return
+    
+    try {
+      localStorage.setItem(SAVED_FOR_LATER_KEY, JSON.stringify(savedForLater))
+    } catch (error) {
+      console.error('Failed to save saved items to localStorage:', error)
+    }
   }, [savedForLater])
 
   const addItem = (deviceTypeId: string, deviceType: DeviceType, quantity: number, startDate: string, endDate: string, accessories: { accessory_id: string; quantity: number }[] = []) => {
@@ -133,7 +162,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const item = prev.find((i) => i.device_type_id === deviceTypeId)
       if (item) {
-        setSavedForLater((saved) => [...saved, item])
+        setSavedForLater((saved) => {
+          // Check if item already exists in saved list
+          const exists = saved.some((i) => i.device_type_id === deviceTypeId)
+          if (exists) {
+            return saved // Don't add duplicate
+          }
+          return [...saved, item]
+        })
       }
       return prev.filter((i) => i.device_type_id !== deviceTypeId)
     })
@@ -143,7 +179,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setSavedForLater((saved) => {
       const item = saved.find((i) => i.device_type_id === deviceTypeId)
       if (item) {
-        setItems((prev) => [...prev, item])
+        setItems((prev) => {
+          // Check if item already exists in cart
+          const exists = prev.some((i) => i.device_type_id === deviceTypeId)
+          if (exists) {
+            return prev // Don't add duplicate
+          }
+          return [...prev, item]
+        })
       }
       return saved.filter((i) => i.device_type_id !== deviceTypeId)
     })

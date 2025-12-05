@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/SkeletonLoader'
 import { Calendar, Package, DollarSign, Clock } from 'lucide-react'
 
 export function MyRentals() {
-  const { appUser } = useAuth()
+  const { appUser, loading: authLoading } = useAuth()
   const [rentals, setRentals] = useState<Rental[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
@@ -60,6 +60,17 @@ export function MyRentals() {
     return { text: 'Active', color: 'text-blue-600' }
   }
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin" />
+          <div className="text-lg text-black">Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
   if (!appUser) {
     return (
       <div className="text-center py-12">
@@ -80,8 +91,8 @@ export function MyRentals() {
 
       {/* Rental Statistics */}
       {!loading && rentals.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <Card className="p-2 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Rentals</p>
@@ -90,7 +101,7 @@ export function MyRentals() {
               <Package className="w-8 h-8 text-gray-400" />
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-2 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Active</p>
@@ -99,7 +110,7 @@ export function MyRentals() {
               <Clock className="w-8 h-8 text-blue-400" />
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-2 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Completed</p>
@@ -108,7 +119,7 @@ export function MyRentals() {
               <Calendar className="w-8 h-8 text-green-400" />
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-2 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Spent</p>
@@ -173,14 +184,14 @@ export function MyRentals() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-2 sm:gap-4">
           {filteredRentals.map((rental) => {
             const status = getRentalStatus(rental)
             const deviceType = rental.device?.device_type
 
             return (
-              <Card key={rental.id}>
-                <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <Card key={rental.id} className="p-2 sm:p-4">
+                <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-4">
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-3">
                       <h3 className="text-xl font-bold text-black">
