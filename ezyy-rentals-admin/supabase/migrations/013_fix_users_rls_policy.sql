@@ -85,6 +85,8 @@ CREATE POLICY "Allow service role to insert users" ON users
 
 -- Allow authenticated users to read their own user record
 -- Also allow reading by email match (for getByEmail queries)
+-- This policy allows users to read records where their email matches
+DROP POLICY IF EXISTS "Allow users to read their own record" ON users;
 CREATE POLICY "Allow users to read their own record" ON users
   FOR SELECT
   TO authenticated
@@ -93,12 +95,13 @@ CREATE POLICY "Allow users to read their own record" ON users
     (auth.email() = email OR auth.uid()::text = id::text)
   );
 
--- Allow public/anonymous to read users by email (needed for sign-up flow)
--- This is safe because email is unique and we're only reading, not modifying
-CREATE POLICY "Allow public to read users by email" ON users
+-- Allow authenticated users to read any user record (needed for getByEmail during sign-up)
+-- This is needed because during sign-up, the user might query by email before their session is fully established
+DROP POLICY IF EXISTS "Allow authenticated to read users" ON users;
+CREATE POLICY "Allow authenticated to read users" ON users
   FOR SELECT
-  TO anon, authenticated
-  USING (true);
+  TO authenticated
+  USING (auth.role() = 'authenticated');
 
 -- Allow authenticated users to update their own user record
 CREATE POLICY "Allow users to update their own record" ON users
