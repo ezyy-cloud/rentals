@@ -27,49 +27,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const loadAppUser = async (email: string) => {
-    const { data } = await usersService.getByEmail(email)
-    if (data) {
-      setAppUser(data)
+    try {
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout loading user')), 10000)
+      )
+      
+      const userPromise = usersService.getByEmail(email)
+      const { data } = await Promise.race([userPromise, timeoutPromise]) as Awaited<ReturnType<typeof userPromise>>
+      
+      if (data) {
+        setAppUser(data)
+      } else {
+        setAppUser(null)
+      }
+    } catch (error) {
+      console.error('Error loading app user:', error)
+      setAppUser(null)
     }
   }
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user?.email) {
-        await loadAppUser(session.user.email)
+      try {
+        setSession(session)
+        setUser(session?.user ?? null)
+        if (session?.user?.email) {
+          await loadAppUser(session.user.email)
+        }
+      } catch (error) {
+        console.error('Error loading initial session:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user?.email) {
-        await loadAppUser(session.user.email)
-        // If user just confirmed email (SIGNED_IN event), check profile completion
-        // This happens when user clicks email confirmation link
-        if (event === 'SIGNED_IN' && session) {
-          const { data: userData } = await usersService.getByEmail(session.user.email)
-          if (userData && !isProfileComplete(userData)) {
-            // Store flag to indicate this is a new user who needs to complete profile
-            // ProfileCompletionGuard will handle the redirect
-            sessionStorage.setItem('needs_profile_completion', 'true')
-            // Redirect to profile page
-            if (window.location.pathname !== '/profile') {
-              window.location.href = '/profile'
+      try {
+        setSession(session)
+        setUser(session?.user ?? null)
+        if (session?.user?.email) {
+          await loadAppUser(session.user.email)
+          // If user just confirmed email (SIGNED_IN event), check profile completion
+          // This happens when user clicks email confirmation link
+          if (event === 'SIGNED_IN' && session) {
+            try {
+              const { data: userData } = await usersService.getByEmail(session.user.email)
+              if (userData && !isProfileComplete(userData)) {
+                // Store flag to indicate this is a new user who needs to complete profile
+                // ProfileCompletionGuard will handle the redirect
+                sessionStorage.setItem('needs_profile_completion', 'true')
+                // Redirect to profile page
+                if (window.location.pathname !== '/profile') {
+                  window.location.href = '/profile'
+                }
+              }
+            } catch (error) {
+              console.error('Error checking profile completion:', error)
             }
           }
+        } else {
+          setAppUser(null)
         }
-      } else {
+      } catch (error) {
+        console.error('Error in auth state change:', error)
         setAppUser(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
@@ -125,9 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     })
-    if (!error) {
-      await loadAppUser(email)
-    }
+    // Note: loadAppUser will be called by onAuthStateChange listener
+    // We don't need to call it here to avoid duplicate calls
     return { error }
   }
 

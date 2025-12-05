@@ -17,8 +17,14 @@ export function ProfileCompletionGuard({ children }: ProfileCompletionGuardProps
   const location = useLocation()
 
   useEffect(() => {
-    // Don't redirect if still loading or if no user
-    if (loading || !appUser) {
+    // Don't redirect if still loading
+    if (loading) {
+      return
+    }
+
+    // If no appUser, allow access (user might not exist in database yet)
+    // This shouldn't happen in protected routes, but we'll allow it
+    if (!appUser) {
       return
     }
 
