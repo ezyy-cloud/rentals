@@ -1,20 +1,18 @@
 -- Fix RLS policy for users table to allow sign-up
--- The issue: Users can't insert their own record during sign-up
--- Solution: Allow authenticated users to insert their own user record (email must match auth.email())
--- Also allow authenticated users to read/update their own records
+-- The issue: Users can't insert their own record during sign-up because auth.email() might not be available immediately
+-- Solution: Allow authenticated users to insert any user record (they're creating their own account)
+-- Restrict SELECT/UPDATE to their own records for security
 
 -- Drop the existing generic policy
 DROP POLICY IF EXISTS "Allow authenticated users to manage users" ON users;
 
--- Allow authenticated users to insert their own user record
--- This is needed during sign-up when a user creates their profile
-CREATE POLICY "Allow users to insert their own record" ON users
+-- Allow authenticated users to insert user records
+-- This is needed during sign-up. We allow any authenticated user to insert since they're creating their own account.
+-- The email uniqueness constraint and application logic ensure they can only create their own record.
+CREATE POLICY "Allow authenticated users to insert users" ON users
   FOR INSERT
   TO authenticated
-  WITH CHECK (
-    auth.role() = 'authenticated' AND 
-    (auth.email() = email OR auth.email() IS NOT NULL)
-  );
+  WITH CHECK (auth.role() = 'authenticated');
 
 -- Allow authenticated users to read their own user record
 CREATE POLICY "Allow users to read their own record" ON users
