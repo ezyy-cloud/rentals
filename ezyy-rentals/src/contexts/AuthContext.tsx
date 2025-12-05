@@ -74,29 +74,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: authError ?? new Error('Failed to create account') }
     }
 
-    // Wait for session to be established (important for RLS policies)
-    // Get the current session after sign-up
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    // If no session yet, wait a bit and try again (for email confirmation flows)
-    if (!session) {
-      // Wait 500ms and check again
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const { data: { session: retrySession } } = await supabase.auth.getSession()
-      if (!retrySession) {
-        // If still no session, the user might need to confirm email
-        // But we can still try to create the user record
-      }
-    }
+    // Wait a moment for any database triggers to complete
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     // Create user record in users table
+    // The RLS policy should allow this for authenticated users
     const { error: userError } = await usersService.create({
       ...userData,
       email,
     })
 
     if (userError) {
-      // If user creation fails, we should clean up the auth user
+      // Check if user was created by trigger
+      const { data: existingUser } = await usersService.getByEmail(email)
+      if (existingUser) {
+        // User exists (created by trigger), just load it
+        await loadAppUser(email)
+        return { error: null }
+      }
+      // User creation failed and user doesn't exist - clean up auth user
       await supabase.auth.signOut()
       return { error: userError }
     }

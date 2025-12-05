@@ -70,10 +70,17 @@ $$;
 GRANT EXECUTE ON FUNCTION public.create_user_profile TO authenticated;
 
 -- Allow authenticated users to insert user records directly
--- This is a fallback if the function approach doesn't work
+-- This is permissive to allow sign-up flow
+-- Note: Email uniqueness constraint prevents duplicate accounts
 CREATE POLICY "Allow authenticated users to insert users" ON users
   FOR INSERT
   TO authenticated
+  WITH CHECK (true);
+
+-- Also allow service_role to insert (for triggers and functions)
+CREATE POLICY "Allow service role to insert users" ON users
+  FOR INSERT
+  TO service_role
   WITH CHECK (true);
 
 -- Allow authenticated users to read their own user record
