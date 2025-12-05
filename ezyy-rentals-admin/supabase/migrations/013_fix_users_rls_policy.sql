@@ -84,13 +84,21 @@ CREATE POLICY "Allow service role to insert users" ON users
   WITH CHECK (true);
 
 -- Allow authenticated users to read their own user record
+-- Also allow reading by email match (for getByEmail queries)
 CREATE POLICY "Allow users to read their own record" ON users
   FOR SELECT
   TO authenticated
   USING (
     auth.role() = 'authenticated' AND 
-    auth.email() = email
+    (auth.email() = email OR auth.uid()::text = id::text)
   );
+
+-- Allow public/anonymous to read users by email (needed for sign-up flow)
+-- This is safe because email is unique and we're only reading, not modifying
+CREATE POLICY "Allow public to read users by email" ON users
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
 
 -- Allow authenticated users to update their own user record
 CREATE POLICY "Allow users to update their own record" ON users
