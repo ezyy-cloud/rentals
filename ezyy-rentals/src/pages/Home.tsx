@@ -109,13 +109,22 @@ export function Home() {
 
       switch (sortBy) {
         case 'price-low':
+          // Sort by price, but available devices first
+          if (a.available_count > 0 && b.available_count === 0) return -1
+          if (a.available_count === 0 && b.available_count > 0) return 1
           return deviceA.rental_rate - deviceB.rental_rate
         case 'price-high':
+          // Sort by price, but available devices first
+          if (a.available_count > 0 && b.available_count === 0) return -1
+          if (a.available_count === 0 && b.available_count > 0) return 1
           return deviceB.rental_rate - deviceA.rental_rate
         case 'availability':
           return b.available_count - a.available_count
         case 'name':
         default:
+          // Sort by name, but available devices first
+          if (a.available_count > 0 && b.available_count === 0) return -1
+          if (a.available_count === 0 && b.available_count > 0) return 1
           return deviceA.name.localeCompare(deviceB.name)
       }
     })
