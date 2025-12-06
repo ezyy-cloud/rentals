@@ -285,6 +285,57 @@ export const usersService = {
     return { data, error }
   },
   async create(user: Omit<User, 'id' | 'created_at' | 'updated_at'>) {
+    // Try using the database function first (bypasses RLS)
+    // This is safer during sign-up when session might not be fully established
+    const { data: functionData, error: functionError } = await supabase.rpc('create_user_profile', {
+      p_email: user.email,
+      p_first_name: user.first_name,
+      p_last_name: user.last_name,
+      p_telephone: user.telephone,
+      p_address: user.address,
+      p_city: user.city,
+      p_country: user.country,
+      p_id_number: user.id_number,
+      p_date_of_birth: user.date_of_birth,
+      p_profile_picture: user.profile_picture,
+      p_next_of_kin_first_name: user.next_of_kin_first_name,
+      p_next_of_kin_last_name: user.next_of_kin_last_name,
+      p_next_of_kin_phone_number: user.next_of_kin_phone_number,
+    })
+
+    if (!functionError && functionData) {
+      // Function succeeded and returns the full user object (json)
+      // This bypasses RLS read issues
+      return { data: functionData as User, error: null }
+    }
+
+    // If function failed due to duplicate (user already exists), fetch the existing user
+    if (functionError && (functionError.message?.includes('duplicate') || functionError.message?.includes('unique') || functionError.code === '23505')) {
+      const { data: existingUser } = await this.getByEmail(user.email)
+      if (existingUser) {
+        return { data: existingUser, error: null }
+      }
+      return { data: null, error: functionError }
+    }
+
+    // If function doesn't exist (error code 42883) or other non-critical error, fall back to direct insert
+    // This will work if session is available and RLS allows it
+    if (functionError && functionError.code === '42883') {
+      // Function doesn't exist, try direct insert
+      const { data, error } = await supabase
+        .from('users')
+        .insert(user)
+        .select()
+        .single()
+      return { data, error }
+    }
+
+    // Other function errors - return them
+    if (functionError) {
+      return { data: null, error: functionError }
+    }
+
+    // Fallback to direct insert if function didn't return data
     const { data, error } = await supabase
       .from('users')
       .insert(user)

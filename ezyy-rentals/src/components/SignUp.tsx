@@ -76,6 +76,25 @@ export function SignUp() {
       }
     }
     
+    if (step === 2) {
+      if (!formData.id_number || formData.id_number.trim() === '') {
+        const errorMsg = 'ID Number is required'
+        setError(errorMsg)
+        showError(errorMsg)
+        return false
+      }
+    }
+    
+    // Final validation before submission
+    if (step === 3) {
+      if (!formData.id_number || formData.id_number.trim() === '') {
+        const errorMsg = 'ID Number is required'
+        setError(errorMsg)
+        showError(errorMsg)
+        return false
+      }
+    }
+    
     return true
   }
 
@@ -100,6 +119,15 @@ export function SignUp() {
     setLoading(true)
 
     try {
+      // Validate id_number is not empty before submission
+      if (!formData.id_number || formData.id_number.trim() === '') {
+        const errorMsg = 'ID Number is required'
+        setError(errorMsg)
+        showError(errorMsg)
+        setLoading(false)
+        return
+      }
+
       const { error } = await signUp(formData.email, formData.password, {
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -107,7 +135,7 @@ export function SignUp() {
         address: formData.address || '',
         city: formData.city || null,
         country: formData.country || null,
-        id_number: formData.id_number || '',
+        id_number: formData.id_number.trim(),
         date_of_birth: formData.date_of_birth || '',
         profile_picture: null,
         next_of_kin_first_name: formData.next_of_kin_first_name || '',
@@ -139,12 +167,18 @@ export function SignUp() {
   }
 
   const handleSkip = () => {
-    // Allow skipping to create account with minimal info
-    if (currentStep === 1 && validateStep(1)) {
-      handleSubmit(new Event('submit') as any)
-    } else {
-      handleNext()
+    // Allow skipping to next step, but not past required fields
+    // ID Number is required, so we can't skip step 2 if it's not filled
+    if (currentStep === 2) {
+      // Check if id_number is filled before allowing skip
+      if (!formData.id_number || formData.id_number.trim() === '') {
+        const errorMsg = 'ID Number is required before proceeding'
+        setError(errorMsg)
+        showError(errorMsg)
+        return
+      }
     }
+    handleNext()
   }
 
   const updateField = (field: string, value: string) => {
@@ -268,7 +302,7 @@ export function SignUp() {
           {currentStep === 2 && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-black mb-4">Personal Details</h2>
-              <p className="text-sm text-gray-600 mb-4">You can complete this later if needed</p>
+              <p className="text-sm text-gray-600 mb-4">Please provide your personal information. Fields marked with * are required.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="telephone" className="block text-sm font-medium text-black mb-1">
@@ -285,14 +319,16 @@ export function SignUp() {
 
             <div>
               <label htmlFor="id_number" className="block text-sm font-medium text-black mb-1">
-                    ID Number
+                    ID Number *
               </label>
               <input
                 id="id_number"
                 type="text"
+                required
                 value={formData.id_number}
                 onChange={(e) => updateField('id_number', e.target.value)}
                 className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
+                placeholder="Enter your national ID number"
               />
             </div>
 
