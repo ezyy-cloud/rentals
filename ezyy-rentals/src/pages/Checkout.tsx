@@ -41,7 +41,7 @@ export function Checkout() {
 
     const start = new Date(item.start_date)
     const end = new Date(item.end_date)
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 
     // Calculate per unit costs
     const deviceRentalCostPerUnit = deviceType.rental_rate * days
@@ -92,7 +92,7 @@ export function Checkout() {
     setError(null)
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const now = new Date().toISOString()
       const allRentalPromises: Promise<{ data: any; error: any }>[] = []
 
       // For each cart item, create multiple rentals (one per quantity)
@@ -118,7 +118,7 @@ export function Checkout() {
           .from('rentals')
           .select('device_id')
           .is('returned_date', null)
-          .gte('end_date', today)
+          .gte('end_date', now)
 
         const rentedDeviceIds = new Set(activeRentals?.map(r => r.device_id) ?? [])
 
@@ -130,9 +130,11 @@ export function Checkout() {
           if (deviceType.has_subscription) {
             if (!device.subscription_date) return false
             const subscriptionDate = new Date(device.subscription_date)
-            const todayDate = new Date(today)
-            todayDate.setHours(0, 0, 0, 0)
-            if (subscriptionDate < todayDate) return false
+            const nowDate = new Date(now)
+            // Compare dates only (subscription_date is still a DATE field)
+            nowDate.setHours(0, 0, 0, 0)
+            subscriptionDate.setHours(0, 0, 0, 0)
+            if (subscriptionDate < nowDate) return false
           }
 
           return true

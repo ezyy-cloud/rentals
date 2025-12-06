@@ -27,12 +27,23 @@ export function DeviceDetail({ deviceId }: { deviceId: string }) {
 
   useEffect(() => {
     loadData()
-    // Set default dates
+    // Set default dates with 10:00 AM default time
     const today = new Date()
+    today.setHours(10, 0, 0, 0)
     const endDate = new Date()
     endDate.setDate(today.getDate() + 7)
-    setStartDate(today.toISOString().split('T')[0])
-    setEndDate(endDate.toISOString().split('T')[0])
+    endDate.setHours(10, 0, 0, 0)
+    // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+    const formatForDateTimeLocal = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+    setStartDate(formatForDateTimeLocal(today))
+    setEndDate(formatForDateTimeLocal(endDate))
   }, [deviceId])
 
   const loadData = async () => {
@@ -118,7 +129,7 @@ export function DeviceDetail({ deviceId }: { deviceId: string }) {
 
     const start = new Date(startDate)
     const end = new Date(endDate)
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 
     // Calculate per unit costs
     const deviceRentalCostPerUnit = deviceType.rental_rate * days
@@ -294,25 +305,33 @@ export function DeviceDetail({ deviceId }: { deviceId: string }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-1">Start Date *</label>
+              <label className="block text-sm font-medium text-black mb-1">Start Date & Time *</label>
               <input
-                type="date"
+                type="datetime-local"
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={(() => {
+                  const now = new Date()
+                  const year = now.getFullYear()
+                  const month = String(now.getMonth() + 1).padStart(2, '0')
+                  const day = String(now.getDate()).padStart(2, '0')
+                  const hours = String(now.getHours()).padStart(2, '0')
+                  const minutes = String(now.getMinutes()).padStart(2, '0')
+                  return `${year}-${month}-${day}T${hours}:${minutes}`
+                })()}
                 className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-1">End Date *</label>
+              <label className="block text-sm font-medium text-black mb-1">End Date & Time *</label>
               <input
-                type="date"
+                type="datetime-local"
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                min={startDate || new Date().toISOString().split('T')[0]}
+                min={startDate || undefined}
                 className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
               />
             </div>

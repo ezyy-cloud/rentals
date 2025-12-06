@@ -212,7 +212,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       const startDate = new Date(item.start_date)
       const endDate = new Date(item.end_date)
-      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
 
       // Calculate cost per unit
       const deviceRentalCostPerUnit = deviceType.rental_rate * days

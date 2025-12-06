@@ -57,13 +57,25 @@ export function Home() {
   }
 
   const handleAddToCart = (deviceTypeId: string, deviceType: DeviceType, quantity: number) => {
-    // Calculate default dates (today to 7 days from now)
+    // Calculate default dates (today to 7 days from now) with 10:00 AM default time
     const today = new Date()
+    today.setHours(10, 0, 0, 0)
     const endDate = new Date()
     endDate.setDate(today.getDate() + 7)
+    endDate.setHours(10, 0, 0, 0)
 
-    const startDateStr = today.toISOString().split('T')[0]
-    const endDateStr = endDate.toISOString().split('T')[0]
+    // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+    const formatForDateTimeLocal = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+
+    const startDateStr = formatForDateTimeLocal(today)
+    const endDateStr = formatForDateTimeLocal(endDate)
 
     addItem(deviceTypeId, deviceType, quantity, startDateStr, endDateStr)
     showSuccess(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart`)

@@ -60,11 +60,22 @@ export function Rentals() {
       const rental = rentals.find(r => r.id === editId)
       if (rental) {
         setEditingRental(rental)
+        // Convert timestamp to datetime-local format (YYYY-MM-DDTHH:mm)
+        const formatForDateTimeLocal = (dateStr: string) => {
+          if (!dateStr) return ''
+          const date = new Date(dateStr)
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const hours = String(date.getHours()).padStart(2, '0')
+          const minutes = String(date.getMinutes()).padStart(2, '0')
+          return `${year}-${month}-${day}T${hours}:${minutes}`
+        }
         setFormData({
           user_id: rental.user_id,
           device_id: rental.device_id,
-          start_date: rental.start_date,
-          end_date: rental.end_date,
+          start_date: formatForDateTimeLocal(rental.start_date),
+          end_date: formatForDateTimeLocal(rental.end_date),
           rate: rental.rate.toString(),
           deposit: rental.deposit.toString(),
           total_paid: rental.total_paid.toString(),
@@ -136,11 +147,17 @@ export function Rentals() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Convert datetime-local format to ISO string for database
+      const convertToISO = (datetimeLocal: string) => {
+        if (!datetimeLocal) return ''
+        // datetime-local format is "YYYY-MM-DDTHH:mm" - convert to ISO
+        return new Date(datetimeLocal).toISOString()
+      }
       const submitData = {
         user_id: formData.user_id,
         device_id: formData.device_id,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
+        start_date: convertToISO(formData.start_date),
+        end_date: convertToISO(formData.end_date),
         rate: parseFloat(formData.rate),
         deposit: parseFloat(formData.deposit),
         total_paid: parseFloat(formData.total_paid),
@@ -179,11 +196,22 @@ export function Rentals() {
   const handleEdit = (rental: Rental, e?: React.MouseEvent) => {
     e?.stopPropagation()
     setEditingRental(rental)
+    // Convert timestamp to datetime-local format (YYYY-MM-DDTHH:mm)
+    const formatForDateTimeLocal = (dateStr: string) => {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    }
     setFormData({
       user_id: rental.user_id,
       device_id: rental.device_id,
-      start_date: rental.start_date,
-      end_date: rental.end_date,
+      start_date: formatForDateTimeLocal(rental.start_date),
+      end_date: formatForDateTimeLocal(rental.end_date),
       rate: rental.rate.toString(),
       deposit: rental.deposit.toString(),
       total_paid: rental.total_paid.toString(),
@@ -277,8 +305,7 @@ export function Rentals() {
 
   const filteredAndSortedRentals = useMemo(() => {
     let filtered = [...rentals]
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const now = new Date()
 
     // Apply search filter
     if (searchTerm) {
@@ -302,12 +329,12 @@ export function Rentals() {
           if (rental.returned_date) return false
           const startDate = new Date(rental.start_date)
           const endDate = new Date(rental.end_date)
-          return today >= startDate && today <= endDate
+          return now >= startDate && now <= endDate
         }
         if (filterStatus === 'overdue') {
           if (rental.returned_date) return false
           const endDate = new Date(rental.end_date)
-          return endDate < today
+          return endDate < now
         }
         return true
       })
@@ -430,9 +457,9 @@ export function Rentals() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-1">Start Date</label>
+                <label className="block text-sm font-medium text-black mb-1">Start Date & Time</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   required
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
@@ -440,12 +467,13 @@ export function Rentals() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black mb-1">End Date</label>
+                <label className="block text-sm font-medium text-black mb-1">End Date & Time</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   required
                   value={formData.end_date}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  min={formData.start_date || undefined}
                   className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
@@ -759,8 +787,24 @@ export function Rentals() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {rental.device?.name ?? 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{rental.start_date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{rental.end_date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {new Date(rental.start_date).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {new Date(rental.end_date).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {rental.shipped_date ? (
                         <span className="text-sm text-blue-600">{rental.shipped_date}</span>

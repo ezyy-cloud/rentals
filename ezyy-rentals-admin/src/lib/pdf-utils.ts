@@ -94,8 +94,20 @@ export function generateRentalPDF(rental: Rental) {
   
   doc.setFontSize(10)
   const periodInfo = [
-    ['Start Date:', new Date(rental.start_date).toLocaleDateString()],
-    ['End Date:', new Date(rental.end_date).toLocaleDateString()],
+    ['Start Date & Time:', new Date(rental.start_date).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })],
+    ['End Date & Time:', new Date(rental.end_date).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })],
     ['Returned Date:', rental.returned_date ? new Date(rental.returned_date).toLocaleDateString() : 'Not returned'],
   ]
   
@@ -182,8 +194,20 @@ export function generateAllRentalsPDF(rentals: Rental[]) {
   const tableData = rentals.map((rental) => [
     rental.user ? `${rental.user.first_name} ${rental.user.last_name}` : 'N/A',
     rental.device?.name ?? 'N/A',
-    new Date(rental.start_date).toLocaleDateString(),
-    new Date(rental.end_date).toLocaleDateString(),
+    new Date(rental.start_date).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+    new Date(rental.end_date).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
     `$${rental.rate.toFixed(2)}`,
     `$${rental.deposit.toFixed(2)}`,
     `$${rental.total_paid.toFixed(2)}`,

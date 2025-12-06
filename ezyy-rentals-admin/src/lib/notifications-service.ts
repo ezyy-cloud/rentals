@@ -35,13 +35,18 @@ export const notificationsService = {
     // Check rentals due to be returned in 7 days
     const { data: rentals } = await rentalsService.getAll()
     if (rentals) {
+      const now = new Date()
+      // Round to start of day for 7-day comparison (compare dates, not exact times)
+      const sevenDaysFromNowForRentals = new Date(sevenDaysFromNow)
+      
       for (const rental of rentals) {
         if (!rental.returned_date) {
           const endDate = new Date(rental.end_date)
-          endDate.setHours(0, 0, 0, 0)
+          const endDateStartOfDay = new Date(endDate)
+          endDateStartOfDay.setHours(0, 0, 0, 0)
           
-          // Check if rental is due in 7 days
-          if (endDate.getTime() === sevenDaysFromNow.getTime()) {
+          // Check if rental is due in 7 days (compare dates, not exact times)
+          if (endDateStartOfDay.getTime() === sevenDaysFromNowForRentals.getTime()) {
             notifications.push({
               type: 'rental_due',
               reference_id: rental.id,
@@ -50,8 +55,8 @@ export const notificationsService = {
             })
           }
           
-          // Check if rental is overdue
-          if (endDate < today) {
+          // Check if rental is overdue (compare with current time)
+          if (endDate < now) {
             notifications.push({
               type: 'rental_overdue',
               reference_id: rental.id,

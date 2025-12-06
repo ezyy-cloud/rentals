@@ -30,7 +30,7 @@ export function Cart() {
 
     const start = new Date(item.start_date)
     const end = new Date(item.end_date)
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 
     // Calculate per unit costs
     const deviceRentalCostPerUnit = deviceType.rental_rate * days
@@ -192,28 +192,28 @@ export function Cart() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-black mb-1">Start Date</label>
+                        <label className="block text-sm font-medium text-black mb-1">Start Date & Time</label>
                         <input
-                          type="date"
+                          type="datetime-local"
                           value={item.start_date}
                           onChange={(e) =>
                             updateItem(item.device_type_id, { start_date: e.target.value })
                           }
                           className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
-                          aria-label="Start date"
+                          aria-label="Start date and time"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-black mb-1">End Date</label>
+                        <label className="block text-sm font-medium text-black mb-1">End Date & Time</label>
                         <input
-                          type="date"
+                          type="datetime-local"
                           value={item.end_date}
                           onChange={(e) =>
                             updateItem(item.device_type_id, { end_date: e.target.value })
                           }
-                          min={item.start_date}
+                          min={item.start_date || undefined}
                           className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
-                          aria-label="End date"
+                          aria-label="End date and time"
                         />
                       </div>
                     </div>

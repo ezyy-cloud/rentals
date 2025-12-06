@@ -294,12 +294,28 @@ export function RentalDetail() {
           <h2 className="text-lg font-bold text-black mb-4">Rental Details</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Start Date</label>
-              <p className="text-base text-black">{rental.start_date}</p>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Start Date & Time</label>
+              <p className="text-base text-black">
+                {new Date(rental.start_date).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">End Date</label>
-              <p className="text-base text-black">{rental.end_date}</p>
+              <label className="block text-sm font-medium text-gray-600 mb-1">End Date & Time</label>
+              <p className="text-base text-black">
+                {new Date(rental.end_date).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Rate</label>
@@ -311,7 +327,29 @@ export function RentalDetail() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Total Paid</label>
-              <p className="text-base text-black">${rental.total_paid.toFixed(2)}</p>
+              <p className="text-base text-black">
+                ${(() => {
+                  // Calculate using the new 24-hour day formula to ensure accuracy
+                  // This recalculates the correct total for existing rentals that used the old formula
+                  const start = new Date(rental.start_date)
+                  const end = new Date(rental.end_date)
+                  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+                  
+                  const deviceRental = rental.rate * days
+                  
+                  // Calculate accessory rental costs
+                  const accessoryRental = (rental.accessories ?? []).reduce((sum, ra) => {
+                    const accessory = ra.accessory
+                    if (accessory) {
+                      return sum + (accessory.rental_rate * days * ra.quantity)
+                    }
+                    return sum
+                  }, 0)
+                  
+                  // Total Paid = rental fees + deposit
+                  return (deviceRental + accessoryRental + rental.deposit).toFixed(2)
+                })()}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Delivery Method</label>

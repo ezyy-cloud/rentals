@@ -66,16 +66,16 @@ export function Overview() {
       const accessories = accessoriesResult.data ?? []
       const rentals = rentalsResult.data ?? []
 
-      // Calculate active rentals (where current date is between start and end date)
+      // Calculate active rentals (where current time is between start and end timestamp)
+      const now = new Date()
       const today = new Date()
       today.setHours(0, 0, 0, 0)
+      
       const activeRentals = rentals.filter((rental) => {
         if (rental.returned_date) return false
         const startDate = new Date(rental.start_date)
         const endDate = new Date(rental.end_date)
-        startDate.setHours(0, 0, 0, 0)
-        endDate.setHours(0, 0, 0, 0)
-        return today >= startDate && today <= endDate
+        return now >= startDate && now <= endDate
       })
 
       // Calculate device status
@@ -139,17 +139,15 @@ export function Overview() {
       const overdueRentals = rentals.filter(r => {
         if (r.returned_date) return false
         const endDate = new Date(r.end_date)
-        endDate.setHours(0, 0, 0, 0)
-        return endDate < today
+        return endDate < now
       }).length
 
-      const sevenDaysFromNow = new Date(today)
+      const sevenDaysFromNow = new Date(now)
       sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
       const upcomingReturns = rentals.filter(r => {
         if (r.returned_date) return false
         const endDate = new Date(r.end_date)
-        endDate.setHours(0, 0, 0, 0)
-        return endDate >= today && endDate <= sevenDaysFromNow
+        return endDate >= now && endDate <= sevenDaysFromNow
       }).length
 
       // Get unread notifications count
@@ -166,7 +164,7 @@ export function Overview() {
       const calculateRentalRevenue = (rental: Rental) => {
         const start = new Date(rental.start_date)
         const end = new Date(rental.end_date)
-        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
         
         const deviceRental = rental.rate * days
         
@@ -247,10 +245,12 @@ export function Overview() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     })
   }
 

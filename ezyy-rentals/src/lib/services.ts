@@ -23,7 +23,7 @@ export const deviceTypesService = {
 // Devices - Get available devices (not currently rented, working, and subscription paid if applicable)
 export const devicesService = {
   async getAvailable() {
-    const today = new Date().toISOString().split('T')[0]
+    const now = new Date().toISOString()
     
     // Get all devices with their types, only working devices
     const { data: devices, error: devicesError } = await supabase
@@ -40,12 +40,12 @@ export const devicesService = {
       return { data: [], error: null }
     }
 
-    // Get all active rentals (not returned and end_date >= today)
+    // Get all active rentals (not returned and end_date >= now)
     const { data: activeRentals, error: rentalsError } = await supabase
       .from('rentals')
       .select('device_id')
       .is('returned_date', null)
-      .gte('end_date', today)
+      .gte('end_date', now)
 
     if (rentalsError) {
       // Don't fail completely if we can't get rentals, just show all devices
@@ -97,7 +97,7 @@ export const devicesService = {
     return { data, error }
   },
   async getAvailableByType() {
-    const today = new Date().toISOString().split('T')[0]
+    const now = new Date().toISOString()
     
     // Get ALL device types first (to include types with no devices yet)
     const { data: allDeviceTypes, error: deviceTypesError } = await supabase
@@ -119,12 +119,12 @@ export const devicesService = {
       return { data: [], error: devicesError }
     }
 
-    // Get all active rentals (not returned and end_date >= today)
+    // Get all active rentals (not returned and end_date >= now)
     const { data: activeRentals, error: rentalsError } = await supabase
       .from('rentals')
       .select('device_id')
       .is('returned_date', null)
-      .gte('end_date', today)
+      .gte('end_date', now)
 
     if (rentalsError) {
       // Don't fail completely if we can't get rentals, just show all devices
