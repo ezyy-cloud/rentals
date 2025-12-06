@@ -239,7 +239,8 @@ export async function generateRentalPDF(rental: Rental, logoUrl?: string, settin
   financialTerms.push(
     `Total Rental Fee: $${subtotal.toFixed(2)}`,
     `Security Deposit: $${rental.deposit.toFixed(2)}`,
-    `Total Amount Paid: $${rental.total_paid.toFixed(2)}`
+    `Total Amount Paid: $${rental.total_paid.toFixed(2)}`,
+    `Payment Method: ${rental.delivery_method === 'shipping' ? 'Cash On Delivery' : 'Cash on Collection'}`
   )
   
   financialTerms.forEach((term) => {
