@@ -4,6 +4,7 @@ import { devicesService, deviceTypesService } from '@/lib/supabase-service'
 import type { Device, DeviceType } from '@/lib/supabase-types'
 import { Button } from '@/components/ui/button'
 import { X, Edit, Trash2 } from 'lucide-react'
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription'
 
 export function Devices() {
   const navigate = useNavigate()
@@ -26,6 +27,24 @@ export function Devices() {
     loadDeviceTypes()
     checkAndUpdateSubscriptions()
   }, [])
+
+  // Subscribe to real-time updates for devices
+  useRealtimeSubscription({
+    table: 'devices',
+    event: '*',
+    onInsert: () => {
+      // Reload devices to get full data with relationships (device_type)
+      loadDevices()
+    },
+    onUpdate: () => {
+      // Reload devices to get full data with relationships (device_type)
+      loadDevices()
+    },
+    onDelete: () => {
+      // Reload to ensure consistency
+      loadDevices()
+    },
+  })
 
   const checkAndUpdateSubscriptions = async () => {
     const { updated } = await devicesService.updateSubscriptionDates()

@@ -1,13 +1,14 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { rentalsService, usersService, devicesService, accessoriesService } from '@/lib/supabase-service'
 import type { Rental, User, Device, Accessory } from '@/lib/supabase-types'
 import { Button } from '@/components/ui/button'
 import { X, Edit, Trash2, CheckCircle, Download, Printer, Truck, Search, ArrowUpDown, MoreVertical } from 'lucide-react'
-import { downloadRentalPDF, printRentalPDF, downloadAllRentalsPDF, printAllRentalsPDF } from '@/lib/pdf-utils'
+import { downloadRentalPDF, printRentalPDF, downloadAllRentalsPDF, printAllRentalsPDF, loadEzyyLogo } from '@/lib/pdf-utils'
 import { TableSkeleton } from '@/components/SkeletonLoader'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useToast } from '@/contexts/ToastContext'
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription'
 
 type SortField = 'start_date' | 'end_date' | 'user' | 'total_paid'
 type SortOrder = 'asc' | 'desc'
@@ -45,6 +46,8 @@ export function Rentals() {
   })
   const [selectedAccessories, setSelectedAccessories] = useState<{ accessory_id: string; quantity: number }[]>([])
   const [searchParams, setSearchParams] = useSearchParams()
+  const actionButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({})
+  const [dropdownPosition, setDropdownPosition] = useState<{ [key: string]: { top: number; left: number } }>({})
 
   useEffect(() => {
     loadRentals()
@@ -52,6 +55,29 @@ export function Rentals() {
     loadDevices()
     loadAccessories()
   }, [])
+
+  // Subscribe to real-time updates for rentals
+  useRealtimeSubscription({
+    table: 'rentals',
+    event: '*',
+    onInsert: () => {
+      // Reload rentals to get full data with relationships
+      loadRentals()
+    },
+    onUpdate: () => {
+      // Reload rentals to get full data with relationships
+      loadRentals()
+    },
+    onDelete: () => {
+      // Remove deleted rental from state
+      setRentals((prev) => {
+        // The payload.old.id will be available, but we'll just reload to be safe
+        return prev
+      })
+      // Reload to ensure consistency
+      loadRentals()
+    },
+  })
 
   // Handle edit query parameter
   useEffect(() => {
@@ -722,10 +748,10 @@ export function Rentals() {
               filteredAndSortedRentals.map((rental) => {
                 const primaryActions = [
                   {
-                    label: 'Mark as Shipped',
+                    label: rental.delivery_method === 'shipping' ? 'Mark as Shipped' : 'Mark as Collected',
                     icon: Truck,
                     onClick: (e: React.MouseEvent) => handleMarkAsShipped(rental.id, e),
-                    show: !rental.shipped_date && rental.delivery_method === 'shipping',
+                    show: !rental.shipped_date,
                     className: 'text-blue-600',
                   },
                   {
@@ -738,9 +764,10 @@ export function Rentals() {
                   {
                     label: 'Download PDF',
                     icon: Download,
-                    onClick: (e: React.MouseEvent) => {
+                    onClick: async (e: React.MouseEvent) => {
                       e.stopPropagation()
-                      downloadRentalPDF(rental)
+                      const logoUrl = await loadEzyyLogo()
+                      await downloadRentalPDF(rental, logoUrl ?? undefined)
                     },
                     show: true,
                     className: 'text-blue-600',
@@ -751,9 +778,10 @@ export function Rentals() {
                   {
                     label: 'Print',
                     icon: Printer,
-                    onClick: (e: React.MouseEvent) => {
+                    onClick: async (e: React.MouseEvent) => {
                       e.stopPropagation()
-                      printRentalPDF(rental)
+                      const logoUrl = await loadEzyyLogo()
+                      await printRentalPDF(rental, logoUrl ?? undefined)
                     },
                     className: 'text-blue-600',
                   },
@@ -807,11 +835,14 @@ export function Rentals() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {rental.shipped_date ? (
-                        <span className="text-sm text-blue-600">{rental.shipped_date}</span>
-                      ) : rental.delivery_method === 'shipping' ? (
-                        <span className="text-sm text-purple-600 font-semibold">Pending Shipment</span>
+                        <span className="text-sm text-blue-600">
+                          {rental.delivery_method === 'shipping' ? 'Shipped: ' : 'Collected: '}
+                          {rental.shipped_date}
+                        </span>
                       ) : (
-                        <span className="text-sm text-gray-400">Not shipped</span>
+                        <span className="text-sm text-purple-600 font-semibold">
+                          {rental.delivery_method === 'shipping' ? 'Pending Shipment' : 'Pending Collection'}
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -822,7 +853,7 @@ export function Rentals() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 relative">
                         {visibleActions.map((action, index) => {
                           const Icon = action.icon
                           return (
@@ -838,11 +869,29 @@ export function Rentals() {
                         })}
 
                         {dropdownActions.length > 0 && (
-                          <div className="relative z-[10000]">
+                          <div className="relative">
                             <button
+                              ref={(el) => {
+                                actionButtonRefs.current[rental.id] = el
+                              }}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setOpenActionsMenu(openActionsMenu === rental.id ? null : rental.id)
+                                if (openActionsMenu === rental.id) {
+                                  setOpenActionsMenu(null)
+                                } else {
+                                  const button = actionButtonRefs.current[rental.id]
+                                  if (button) {
+                                    const rect = button.getBoundingClientRect()
+                                    setDropdownPosition({
+                                      ...dropdownPosition,
+                                      [rental.id]: {
+                                        top: rect.bottom + 4,
+                                        left: rect.right - 192, // 192px = 48 * 4 (w-48 = 12rem = 192px)
+                                      },
+                                    })
+                                  }
+                                  setOpenActionsMenu(rental.id)
+                                }
                               }}
                               className="p-2 hover:bg-gray-200 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
                               title="More actions"
@@ -856,7 +905,13 @@ export function Rentals() {
                                   className="fixed inset-0 z-[9998]"
                                   onClick={() => setOpenActionsMenu(null)}
                                 />
-                                <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black rounded-lg shadow-lg z-[9999]">
+                                <div
+                                  className="fixed w-48 bg-white border-2 border-black rounded-lg shadow-lg z-[9999]"
+                                  style={{
+                                    top: `${dropdownPosition[rental.id]?.top ?? 0}px`,
+                                    left: `${dropdownPosition[rental.id]?.left ?? 0}px`,
+                                  }}
+                                >
                                   <div className="py-1">
                                     {dropdownActions.map((action, index) => {
                                       const Icon = action.icon

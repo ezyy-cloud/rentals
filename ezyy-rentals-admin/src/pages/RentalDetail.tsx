@@ -4,7 +4,7 @@ import { rentalsService } from '@/lib/supabase-service'
 import type { Rental } from '@/lib/supabase-types'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Edit, Trash2, CheckCircle, Download, Printer, Truck, MoreVertical } from 'lucide-react'
-import { downloadRentalPDF, printRentalPDF } from '@/lib/pdf-utils'
+import { downloadRentalPDF, printRentalPDF, loadEzyyLogo } from '@/lib/pdf-utils'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useToast } from '@/contexts/ToastContext'
@@ -117,10 +117,10 @@ export function RentalDetail() {
 
   const primaryActions = [
     {
-      label: 'Mark as Shipped',
+      label: rental.delivery_method === 'shipping' ? 'Mark as Shipped' : 'Mark as Collected',
       icon: Truck,
       onClick: handleMarkAsShipped,
-      show: !rental.shipped_date && rental.delivery_method === 'shipping',
+      show: !rental.shipped_date,
       className: 'text-blue-600',
     },
     {
@@ -133,14 +133,20 @@ export function RentalDetail() {
     {
       label: 'Download PDF',
       icon: Download,
-      onClick: () => downloadRentalPDF(rental),
+      onClick: async () => {
+        const logoUrl = await loadEzyyLogo()
+        await downloadRentalPDF(rental, logoUrl ?? undefined)
+      },
       show: true,
       className: 'text-blue-600',
     },
     {
       label: 'Print',
       icon: Printer,
-      onClick: () => printRentalPDF(rental),
+      onClick: async () => {
+        const logoUrl = await loadEzyyLogo()
+        await printRentalPDF(rental, logoUrl ?? undefined)
+      },
       show: true,
       className: 'text-blue-600',
     },
@@ -357,9 +363,9 @@ export function RentalDetail() {
                 <span className={`font-medium ${rental.delivery_method === 'shipping' ? 'text-blue-600' : 'text-gray-700'}`}>
                   {rental.delivery_method === 'shipping' ? 'Shipping' : 'Collection'}
                 </span>
-                {rental.delivery_method === 'shipping' && !rental.shipped_date && (
+                {!rental.shipped_date && (
                   <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                    ⚠️ Pending Shipment
+                    ⚠️ {rental.delivery_method === 'shipping' ? 'Pending Shipment' : 'Pending Collection'}
                   </span>
                 )}
               </p>
@@ -371,12 +377,19 @@ export function RentalDetail() {
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Shipped Date</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                {rental.delivery_method === 'shipping' ? 'Shipped Date' : 'Collected Date'}
+              </label>
               <p className="text-base text-black">
                 {rental.shipped_date ? (
-                  <span className="text-blue-600">{rental.shipped_date}</span>
+                  <span className="text-blue-600">
+                    {rental.delivery_method === 'shipping' ? 'Shipped: ' : 'Collected: '}
+                    {rental.shipped_date}
+                  </span>
                 ) : (
-                  <span className="text-gray-400">Not shipped</span>
+                  <span className="text-purple-600 font-semibold">
+                    {rental.delivery_method === 'shipping' ? 'Pending Shipment' : 'Pending Collection'}
+                  </span>
                 )}
               </p>
             </div>

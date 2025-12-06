@@ -6,6 +6,7 @@ import { AlertTriangle, Package, Calendar, Users, Smartphone, Tag, TrendingUp, C
 import { StatCardSkeleton, Skeleton } from '@/components/SkeletonLoader'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useToast } from '@/contexts/ToastContext'
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription'
 
 export function Overview() {
   const { showError } = useToast()
@@ -46,6 +47,69 @@ export function Overview() {
     // Generate notifications on load
     notificationsService.generateNotifications()
   }, [])
+
+  // Subscribe to real-time updates for rentals
+  useRealtimeSubscription({
+    table: 'rentals',
+    event: '*',
+    onInsert: () => {
+      loadOverviewData()
+    },
+    onUpdate: () => {
+      loadOverviewData()
+    },
+    onDelete: () => {
+      loadOverviewData()
+    },
+  })
+
+  // Subscribe to real-time updates for devices
+  useRealtimeSubscription({
+    table: 'devices',
+    event: '*',
+    onInsert: () => {
+      loadOverviewData()
+    },
+    onUpdate: () => {
+      loadOverviewData()
+    },
+    onDelete: () => {
+      loadOverviewData()
+    },
+  })
+
+  // Subscribe to real-time updates for users
+  useRealtimeSubscription({
+    table: 'users',
+    event: '*',
+    onInsert: () => {
+      loadOverviewData()
+    },
+    onUpdate: () => {
+      loadOverviewData()
+    },
+    onDelete: () => {
+      loadOverviewData()
+    },
+  })
+
+  // Subscribe to real-time updates for notifications
+  useRealtimeSubscription({
+    table: 'notifications',
+    event: '*',
+    onInsert: () => {
+      // Reload to get updated unread count
+      loadOverviewData()
+    },
+    onUpdate: () => {
+      // Reload to get updated unread count
+      loadOverviewData()
+    },
+    onDelete: () => {
+      // Reload to get updated unread count
+      loadOverviewData()
+    },
+  })
 
   const loadOverviewData = async () => {
     setLoading(true)

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { notificationsService } from '@/lib/notifications-service'
 import type { Notification } from '@/lib/supabase-types'
 import { Bell, X, Check } from 'lucide-react'
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription'
 
 export function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -13,15 +14,39 @@ export function Notifications() {
   useEffect(() => {
     loadNotifications()
     loadUnreadCount()
-    
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(() => {
-      loadNotifications()
-      loadUnreadCount()
-    }, 30000)
-
-    return () => clearInterval(interval)
   }, [])
+
+  // Subscribe to real-time updates for notifications
+  useRealtimeSubscription({
+    table: 'notifications',
+    event: '*',
+    onInsert: (payload) => {
+      const newNotification = payload.new as Notification
+      // Only add if it's unread (since we're showing unread notifications)
+      if (!newNotification.is_read) {
+        setNotifications((prev) => [newNotification, ...prev])
+        setUnreadCount((prev) => prev + 1)
+      }
+    },
+    onUpdate: (payload) => {
+      const updatedNotification = payload.new as Notification
+      // If notification was marked as read, remove it from the list
+      if (updatedNotification.is_read) {
+        setNotifications((prev) => prev.filter((n) => n.id !== updatedNotification.id))
+        setUnreadCount((prev) => Math.max(0, prev - 1))
+      } else {
+        // Update the notification in the list
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n))
+        )
+      }
+    },
+    onDelete: (payload) => {
+      const deletedNotification = payload.old as Notification
+      setNotifications((prev) => prev.filter((n) => n.id !== deletedNotification.id))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    },
+  })
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,12 +78,16 @@ export function Notifications() {
 
   const handleMarkAsRead = async (notificationId: string) => {
     await notificationsService.markAsRead(notificationId)
+    // Real-time update will handle the UI update automatically
+    // But we still need to refresh to ensure consistency
     loadNotifications()
     loadUnreadCount()
   }
 
   const handleMarkAllAsRead = async () => {
     await notificationsService.markAllAsRead()
+    // Real-time updates will handle the UI updates automatically
+    // But we still need to refresh to ensure consistency
     loadNotifications()
     loadUnreadCount()
   }

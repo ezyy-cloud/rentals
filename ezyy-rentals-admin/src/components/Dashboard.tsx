@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Menu, X, LayoutDashboard, Users, Smartphone, Calendar, Package, Tag, CreditCard } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Users, Smartphone, Calendar, Package, Tag, CreditCard, Settings as SettingsIcon } from 'lucide-react'
 import { Notifications } from './Notifications'
 import ezyyLogo from '@/assets/ezyy.svg'
 
@@ -64,6 +64,7 @@ export function Dashboard({ children }: DashboardProps) {
     { path: '/accessories', label: 'Accessories', icon: Package },
     { path: '/rentals', label: 'Rentals', icon: Calendar },
     { path: '/subscription-payments', label: 'Subscription Payments', icon: CreditCard },
+    { path: '/settings', label: 'Settings', icon: SettingsIcon },
   ]
 
   // Get current page title from location

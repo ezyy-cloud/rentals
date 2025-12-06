@@ -15,6 +15,7 @@ import { Rentals } from '@/pages/Rentals'
 import { RentalDetail } from '@/pages/RentalDetail'
 import { SubscriptionPayments } from '@/pages/SubscriptionPayments'
 import { SubscriptionPaymentDetail } from '@/pages/SubscriptionPaymentDetail'
+import { Settings } from '@/pages/Settings'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -186,6 +187,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Dashboard>
               <SubscriptionPaymentDetail />
+            </Dashboard>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Dashboard>
+              <Settings />
             </Dashboard>
           </ProtectedRoute>
         }
