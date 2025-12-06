@@ -113,18 +113,47 @@ export function Checkout() {
           throw new Error(`Failed to fetch available devices: ${devicesError?.message ?? 'Unknown error'}`)
         }
 
-        // Get active rentals to filter out rented devices
-        const { data: activeRentals } = await supabase
+        // Get rentals that could conflict with the requested period
+        // We need to check for date range overlaps, not just active rentals
+        const requestedStart = new Date(item.start_date)
+        const requestedEnd = new Date(item.end_date)
+        
+        // Get device IDs we're checking availability for
+        const deviceIdsToCheck = availableDevices.map(d => d.id)
+        
+        // Get all rentals for these specific devices that could overlap
+        // A rental overlaps if: (start1 < end2) && (start2 < end1)
+        // We need rentals where the device might be unavailable during the requested period
+        const { data: conflictingRentals } = await supabase
           .from('rentals')
-          .select('device_id')
+          .select('device_id, start_date, end_date')
           .is('returned_date', null)
-          .gte('end_date', now)
+          .in('device_id', deviceIdsToCheck)
+          .lte('start_date', requestedEnd.toISOString())
+          .gte('end_date', requestedStart.toISOString())
 
-        const rentedDeviceIds = new Set(activeRentals?.map(r => r.device_id) ?? [])
+        // Create a map of device_id to conflicting rentals
+        const deviceConflicts = new Map<string, Array<{ start: Date; end: Date }>>()
+        conflictingRentals?.forEach((rental) => {
+          if (!deviceConflicts.has(rental.device_id)) {
+            deviceConflicts.set(rental.device_id, [])
+          }
+          deviceConflicts.get(rental.device_id)?.push({
+            start: new Date(rental.start_date),
+            end: new Date(rental.end_date),
+          })
+        })
 
-        // Filter available devices
+        // Filter available devices - check if requested period overlaps with any existing rental
         const trulyAvailable = availableDevices.filter((device) => {
-          if (rentedDeviceIds.has(device.id)) return false
+          // Check if this device has any conflicting rentals
+          const conflicts = deviceConflicts.get(device.id) ?? []
+          const hasOverlap = conflicts.some((conflict) => {
+            // Two date ranges overlap if: (start1 < end2) && (start2 < end1)
+            return requestedStart < conflict.end && conflict.start < requestedEnd
+          })
+          
+          if (hasOverlap) return false
 
           // Check subscription if required
           if (deviceType.has_subscription) {

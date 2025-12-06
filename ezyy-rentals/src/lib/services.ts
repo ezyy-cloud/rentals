@@ -73,8 +73,9 @@ export const devicesService = {
         }
         
         const subscriptionDate = new Date(device.subscription_date)
-        const todayDate = new Date(today)
+        const todayDate = new Date()
         todayDate.setHours(0, 0, 0, 0)
+        subscriptionDate.setHours(0, 0, 0, 0)
         
         // Subscription must be paid (subscription_date >= today)
         if (subscriptionDate < todayDate) {
@@ -166,8 +167,9 @@ export const devicesService = {
           }
           
           const subscriptionDate = new Date(device.subscription_date)
-          const todayDate = new Date(today)
+          const todayDate = new Date()
           todayDate.setHours(0, 0, 0, 0)
+          subscriptionDate.setHours(0, 0, 0, 0)
           
           // Subscription must be paid (subscription_date >= today)
           if (subscriptionDate < todayDate) {
