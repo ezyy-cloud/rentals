@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { MobileBottomNav } from '@/components/MobileBottomNav'
 import { Button } from '@/components/ui/Button'
-import { Menu, X, User, ShoppingBag, Bell, LogOut, Home } from 'lucide-react'
+import { Menu, X, User, ShoppingBag, Bell, LogOut, Home, Package, LogIn, UserPlus } from 'lucide-react'
 import ezyyLogo from '@/assets/ezyy.svg'
 
 interface LayoutProps {
@@ -216,6 +216,7 @@ export function Layout({ children }: LayoutProps) {
                       currentPage === '/rentals' ? 'bg-black text-white' : 'text-black hover:bg-gray-100'
                     }`}
                   >
+                    <Package className="w-4 h-4 inline mr-2" />
                     My Rentals
                   </Link>
 
@@ -266,19 +267,20 @@ export function Layout({ children }: LayoutProps) {
                       </span>
                     )}
                   </Link>
-                  <Button
+                  <button
                     onClick={() => handleNavigate('/login')}
-                    variant="outline"
-                    className="w-full border-black text-black hover:bg-gray-100"
+                    className="w-full text-left px-3 py-2 rounded border-2 border-black text-black hover:bg-gray-100 flex items-center"
                   >
+                    <LogIn className="w-4 h-4 mr-2" />
                     Sign In
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     onClick={() => handleNavigate('/signup')}
-                    className="w-full bg-black text-white hover:bg-gray-800"
+                    className="w-full text-left px-3 py-2 rounded bg-black text-white hover:bg-gray-800 flex items-center"
                   >
+                    <UserPlus className="w-4 h-4 mr-2" />
                     Sign Up
-                  </Button>
+                  </button>
                 </>
               )}
             </div>

@@ -23,8 +23,6 @@ export function Home() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<string>('')
   const [sortBy, setSortBy] = useState<SortOption>('name')
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000])
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const { addItem } = useCart()
 
   useEffect(() => {
@@ -95,11 +93,10 @@ export function Home() {
       deviceType.sku.toLowerCase().includes(searchLower)
     
     const matchesType = !selectedType || deviceType.id === selectedType
-      const matchesPrice = deviceType.rental_rate >= priceRange[0] && deviceType.rental_rate <= priceRange[1]
 
       // Show all devices in catalog, even if unavailable (removed availability.available_count > 0 filter)
       // Show all devices in catalog, even if unavailable (removed availability.available_count > 0 filter)
-      return matchesSearch && matchesType && matchesPrice
+      return matchesSearch && matchesType
   })
 
     // Apply sorting
@@ -130,14 +127,9 @@ export function Home() {
     })
 
     return filtered
-  }, [deviceTypeAvailabilities, searchTerm, selectedType, sortBy, priceRange])
+  }, [deviceTypeAvailabilities, searchTerm, selectedType, sortBy])
 
   const featuredDevices = filteredAndSortedDeviceTypes.slice(0, 3)
-  
-  const maxPrice = useMemo(() => {
-    if (deviceTypeAvailabilities.length === 0) return 1000
-    return Math.max(...deviceTypeAvailabilities.map(a => a.device_type.rental_rate), 1000)
-  }, [deviceTypeAvailabilities])
 
   return (
     <div className="space-y-8">
@@ -265,56 +257,8 @@ export function Home() {
           </div>
         </div>
 
-        {/* Advanced Filters */}
-        <div className="border-t-2 border-gray-200 pt-4">
-          <button
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="flex items-center gap-2 text-sm font-medium text-black hover:text-gray-700"
-          >
-            <Filter className="w-4 h-4" />
-            Advanced Filters
-            {showAdvancedFilters ? ' (Hide)' : ' (Show)'}
-          </button>
-          {showAdvancedFilters && (
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-black mb-2">
-                  Price Range: ${priceRange[0]} - ${priceRange[1]} / day
-                </label>
-                <div className="flex gap-4 items-center">
-                  <input
-                    type="range"
-                    min="0"
-                    max={maxPrice}
-                    value={priceRange[0]}
-                    onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
-                    className="flex-1"
-                  />
-                  <input
-                    type="range"
-                    min="0"
-                    max={maxPrice}
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Quick Filter Chips */}
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => {
-              setPriceRange([0, 50])
-              setShowAdvancedFilters(true)
-            }}
-            className="px-3 py-1 text-sm border-2 border-gray-300 rounded hover:border-black transition-colors"
-          >
-            Under $50/day
-          </button>
           <button
             onClick={() => {
               setSelectedType('')
