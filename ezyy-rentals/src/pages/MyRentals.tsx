@@ -4,11 +4,11 @@ import { rentalsService } from '@/lib/services'
 import type { Rental } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Skeleton } from '@/components/SkeletonLoader'
+import { MyRentalsSkeleton, Skeleton } from '@/components/SkeletonLoader'
 import { Calendar, Package, DollarSign, Clock } from 'lucide-react'
 
 export function MyRentals() {
-  const { appUser, loading: authLoading } = useAuth()
+  const { appUser, loading: authLoading, user } = useAuth()
   const [rentals, setRentals] = useState<Rental[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
@@ -60,18 +60,13 @@ export function MyRentals() {
     return { text: 'Active', color: 'text-blue-600' }
   }
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin" />
-          <div className="text-lg text-black">Loading...</div>
-        </div>
-      </div>
-    )
+  // Show skeleton while loading or if user exists but appUser is still loading
+  if (authLoading || (user && !appUser)) {
+    return <MyRentalsSkeleton />
   }
 
-  if (!appUser) {
+  // Only show "must be logged in" if we're sure user is not logged in
+  if (!appUser && !user) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600 mb-4">You must be logged in to view your rentals</p>

@@ -4,10 +4,11 @@ import { useToast } from '@/contexts/ToastContext'
 import { usersService } from '@/lib/services'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ProfileSkeleton } from '@/components/SkeletonLoader'
 import { User, Save, Edit, X } from 'lucide-react'
 
 export function Profile() {
-  const { appUser, refreshAppUser, loading: authLoading } = useAuth()
+  const { appUser, refreshAppUser, loading: authLoading, user } = useAuth()
   const { showSuccess, showError } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -107,18 +108,13 @@ export function Profile() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin" />
-          <div className="text-lg text-black">Loading...</div>
-        </div>
-      </div>
-    )
+  // Show skeleton while loading or if user exists but appUser is still loading
+  if (authLoading || (user && !appUser)) {
+    return <ProfileSkeleton />
   }
 
-  if (!appUser) {
+  // Only show "must be logged in" if we're sure user is not logged in
+  if (!appUser && !user) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600 mb-4">You must be logged in to view your profile</p>
@@ -127,6 +123,11 @@ export function Profile() {
         </Button>
       </div>
     )
+  }
+
+  // At this point, appUser must exist (TypeScript guard)
+  if (!appUser) {
+    return <ProfileSkeleton />
   }
 
   return (
