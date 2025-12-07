@@ -140,9 +140,9 @@ export function Profile() {
         {!isEditing && (
           <Button
             onClick={handleEditClick}
-            className="bg-black text-white hover:bg-gray-800"
+            className="bg-black text-white hover:bg-gray-800 px-3 py-1.5 text-sm"
           >
-            <Edit className="w-4 h-4 mr-2" />
+            <Edit className="w-3.5 h-3.5 mr-1.5" />
             Edit Profile
           </Button>
         )}
