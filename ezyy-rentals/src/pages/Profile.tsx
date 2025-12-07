@@ -4,11 +4,12 @@ import { useToast } from '@/contexts/ToastContext'
 import { usersService } from '@/lib/services'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { User, Save } from 'lucide-react'
+import { User, Save, Edit, X } from 'lucide-react'
 
 export function Profile() {
   const { appUser, refreshAppUser, loading: authLoading } = useAuth()
   const { showSuccess, showError } = useToast()
+  const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,6 +45,34 @@ export function Profile() {
     }
   }, [appUser])
 
+  const handleEditClick = () => {
+    setIsEditing(true)
+    setSuccess(false)
+    setError(null)
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setSuccess(false)
+    setError(null)
+    // Reset form data to current user data
+    if (appUser) {
+      setFormData({
+        first_name: appUser.first_name,
+        last_name: appUser.last_name,
+        telephone: appUser.telephone,
+        address: appUser.address,
+        city: appUser.city ?? '',
+        country: appUser.country ?? '',
+        id_number: appUser.id_number,
+        date_of_birth: appUser.date_of_birth,
+        next_of_kin_first_name: appUser.next_of_kin_first_name,
+        next_of_kin_last_name: appUser.next_of_kin_last_name,
+        next_of_kin_phone_number: appUser.next_of_kin_phone_number,
+      })
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!appUser) return
@@ -62,6 +91,7 @@ export function Profile() {
         setSuccess(true)
         showSuccess('Profile updated successfully!')
         await refreshAppUser()
+        setIsEditing(false)
         setTimeout(() => setSuccess(false), 3000)
       }
     } catch (err) {
@@ -119,19 +149,31 @@ export function Profile() {
       )}
 
       <Card>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
-            <User className="w-8 h-8 text-white" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-black">
+                {appUser.first_name} {appUser.last_name}
+              </h2>
+              <p className="text-gray-600">{appUser.email}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-black">
-              {appUser.first_name} {appUser.last_name}
-            </h2>
-            <p className="text-gray-600">{appUser.email}</p>
-          </div>
+          {!isEditing && (
+            <Button
+              onClick={handleEditClick}
+              className="bg-black text-white hover:bg-gray-800"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Button>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {isEditing ? (
+          <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold text-black mb-4">Personal Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -261,23 +303,102 @@ export function Profile() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={saving}
-              className="bg-black text-white hover:bg-gray-800"
-            >
-              {saving ? (
-                'Saving...'
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                className="bg-gray-200 text-black hover:bg-gray-300"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving}
+                className="bg-black text-white hover:bg-gray-800"
+              >
+                {saving ? (
+                  'Saving...'
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-black mb-4">Personal Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">First Name</label>
+                  <p className="text-base text-black">{appUser.first_name}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Last Name</label>
+                  <p className="text-base text-black">{appUser.last_name}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number</label>
+                  <p className="text-base text-black">{appUser.telephone}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">ID Number</label>
+                  <p className="text-base text-black">{appUser.id_number}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Date of Birth</label>
+                  <p className="text-base text-black">
+                    {appUser.date_of_birth ? new Date(appUser.date_of_birth).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Address</label>
+                  <p className="text-base text-black">{appUser.address}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">City</label>
+                  <p className="text-base text-black">{appUser.city ?? 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Country</label>
+                  <p className="text-base text-black">{appUser.country ?? 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t-2 border-black pt-6">
+              <h3 className="text-lg font-semibold text-black mb-4">Next of Kin Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">First Name</label>
+                  <p className="text-base text-black">{appUser.next_of_kin_first_name}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Last Name</label>
+                  <p className="text-base text-black">{appUser.next_of_kin_last_name}</p>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Phone Number</label>
+                  <p className="text-base text-black">{appUser.next_of_kin_phone_number}</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </form>
+        )}
       </Card>
     </div>
   )
