@@ -131,9 +131,20 @@ export function Profile() {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold text-black mb-2">My Profile</h1>
-        <p className="text-gray-600">Manage your account information</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-black mb-2">My Profile</h1>
+          <p className="text-gray-600">Manage your account information</p>
+        </div>
+        {!isEditing && (
+          <Button
+            onClick={handleEditClick}
+            className="bg-black text-white hover:bg-gray-800"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Profile
+          </Button>
+        )}
       </div>
 
       {success && (
@@ -149,27 +160,16 @@ export function Profile() {
       )}
 
       <Card>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-black">
-                {appUser.first_name} {appUser.last_name}
-              </h2>
-              <p className="text-gray-600">{appUser.email}</p>
-            </div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
+            <User className="w-8 h-8 text-white" />
           </div>
-          {!isEditing && (
-            <Button
-              onClick={handleEditClick}
-              className="bg-black text-white hover:bg-gray-800"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Profile
-            </Button>
-          )}
+          <div>
+            <h2 className="text-xl font-bold text-black">
+              {appUser.first_name} {appUser.last_name}
+            </h2>
+            <p className="text-gray-600">{appUser.email}</p>
+          </div>
         </div>
 
         {isEditing ? (
