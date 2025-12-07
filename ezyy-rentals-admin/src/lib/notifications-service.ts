@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { devicesService, rentalsService } from './supabase-service'
+import { emailService } from './email-service'
 import type { Notification } from './supabase-types'
 
 export const notificationsService = {
@@ -14,6 +15,13 @@ export const notificationsService = {
     // Check devices with subscriptions due in 7 days
     const { data: devices } = await devicesService.getAll()
     if (devices) {
+      // Get admin email from settings
+      const { data: settings } = await supabase
+        .from('system_settings')
+        .select('email')
+        .limit(1)
+        .single()
+      
       for (const device of devices) {
         if (device.device_type?.has_subscription && device.subscription_date) {
           const subscriptionDate = new Date(device.subscription_date)
@@ -27,6 +35,23 @@ export const notificationsService = {
               message: `Subscription for ${device.name} is due in 7 days (${device.subscription_date})`,
               is_read: false,
             })
+            
+            // Send email to admin
+            if (settings?.email && device.device_type?.subscription_cost) {
+              try {
+                await emailService.sendSubscriptionDue(
+                  device.id,
+                  settings.email,
+                  {
+                    device_name: device.name,
+                    subscription_date: device.subscription_date,
+                    subscription_cost: device.device_type.subscription_cost,
+                  }
+                )
+              } catch (error) {
+                console.error('Error sending subscription due email:', error)
+              }
+            }
           }
         }
       }
@@ -53,6 +78,15 @@ export const notificationsService = {
               message: `Rental for ${rental.device?.name ?? 'device'} is due to be returned in 7 days (${rental.end_date})`,
               is_read: false,
             })
+            
+            // Send email reminder to customer
+            if (rental.user?.email) {
+              try {
+                await emailService.sendDueReturnReminder(rental.id, rental.user.email, 7)
+              } catch (error) {
+                console.error('Error sending due return email:', error)
+              }
+            }
           }
           
           // Check if rental is overdue (compare with current time)
@@ -63,6 +97,39 @@ export const notificationsService = {
               message: `Rental for ${rental.device?.name ?? 'device'} is overdue (was due ${rental.end_date})`,
               is_read: false,
             })
+            
+            // Send overdue email to customer and admin
+            if (rental.user?.email) {
+              try {
+                const { data: settings } = await supabase
+                  .from('system_settings')
+                  .select('email')
+                  .limit(1)
+                  .single()
+                
+                await emailService.sendOverdueRental(
+                  rental.id,
+                  rental.user.email,
+                  settings?.email
+                )
+              } catch (error) {
+                console.error('Error sending overdue rental email:', error)
+              }
+            }
+          }
+          
+          // Check if rental is due tomorrow (1 day)
+          const oneDayFromNow = new Date(today)
+          oneDayFromNow.setDate(oneDayFromNow.getDate() + 1)
+          if (endDateStartOfDay.getTime() === oneDayFromNow.getTime()) {
+            // Send email reminder to customer
+            if (rental.user?.email) {
+              try {
+                await emailService.sendDueReturnReminder(rental.id, rental.user.email, 1)
+              } catch (error) {
+                console.error('Error sending due return email:', error)
+              }
+            }
           }
         }
 

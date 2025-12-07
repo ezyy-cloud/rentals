@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { emailService } from './email-service'
 import type { User, DeviceType, Device, Accessory, Rental, SubscriptionPayment } from './supabase-types'
 
 // Users
@@ -302,6 +303,40 @@ export const rentalsService = {
       if (notificationError) {
         console.error('Error creating shipping notification:', notificationError)
       }
+    }
+
+    // Send booking confirmation email to customer and notification to admin
+    try {
+      // Get user email for customer confirmation
+      const { data: user } = await supabase
+        .from('users')
+        .select('email, first_name, last_name')
+        .eq('id', rental.user_id)
+        .single()
+
+      // Get admin email from settings
+      const { data: settings } = await supabase
+        .from('system_settings')
+        .select('email')
+        .limit(1)
+        .single()
+
+      // Send booking confirmation to customer
+      if (user?.email) {
+        await emailService.sendBookingConfirmation(
+          rentalData.id,
+          user.email,
+          `${user.first_name} ${user.last_name}`
+        )
+      }
+
+      // Send booking notification to admin
+      if (settings?.email) {
+        await emailService.sendBookingNotification(rentalData.id, settings.email)
+      }
+    } catch (emailError) {
+      // Don't fail rental creation if email fails
+      console.error('Error sending booking emails:', emailError)
     }
 
     return { data: rentalData, error: null }
