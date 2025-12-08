@@ -484,20 +484,25 @@ export const rentalsService = {
         pdfBase64 = undefined
       }
 
+      // Send booking confirmation to customer
       if (user?.email) {
         console.log('Customer app: Sending booking confirmation email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
-        // Update email service to accept PDF
-        await emailService.sendEmail({
-          type: 'booking_confirmation',
-          rental_id: rentalData.id,
-          recipient_email: user.email,
-          recipient_name: `${user.first_name} ${user.last_name}`,
-          pdf_base64: pdfBase64,
-        })
+        await emailService.sendBookingConfirmation(
+          rentalData.id,
+          user.email,
+          `${user.first_name} ${user.last_name}`,
+          pdfBase64
+        )
+      }
+
+      // Send booking notification to admin
+      if (settings?.email) {
+        console.log('Customer app: Sending booking notification email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
+        await emailService.sendBookingNotification(rentalData.id, settings.email, pdfBase64)
       }
     } catch (emailError) {
       // Don't fail rental creation if email fails
-      console.error('Error sending booking confirmation email:', emailError)
+      console.error('Customer app: Error sending booking emails:', emailError)
     }
 
     return { data: rentalData, error: null }

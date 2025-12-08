@@ -80,12 +80,25 @@ export const emailService = {
   /**
    * Send booking confirmation email to customer
    */
-  async sendBookingConfirmation(rentalId: string, customerEmail: string, customerName?: string): Promise<{ success: boolean; error?: string }> {
+  async sendBookingConfirmation(rentalId: string, customerEmail: string, customerName?: string, pdfBase64?: string): Promise<{ success: boolean; error?: string }> {
     return this.sendEmail({
       type: 'booking_confirmation',
       rental_id: rentalId,
       recipient_email: customerEmail,
       recipient_name: customerName,
+      pdf_base64: pdfBase64,
+    })
+  },
+
+  /**
+   * Send booking notification email to admin
+   */
+  async sendBookingNotification(rentalId: string, adminEmail: string, pdfBase64?: string): Promise<{ success: boolean; error?: string }> {
+    return this.sendEmail({
+      type: 'booking_notification',
+      rental_id: rentalId,
+      recipient_email: adminEmail,
+      pdf_base64: pdfBase64,
     })
   },
 
