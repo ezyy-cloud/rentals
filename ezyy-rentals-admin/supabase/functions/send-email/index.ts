@@ -134,23 +134,38 @@ serve(async (req) => {
     }
 
     // Send email
+    // Note: The "from" email must be verified in Resend
+    // For testing, you can use: onboarding@resend.dev
+    // For production, verify your domain/email in Resend dashboard
+    const fromEmail = companyEmail || 'onboarding@resend.dev'
+    
     const emailResult = await resend.emails.send({
-      from: `${companyName} <${companyEmail}>`,
+      from: `${companyName} <${fromEmail}>`,
       to: emailRequest.recipient_email,
       subject: emailSubject,
       html: emailHtml,
       attachments: attachments.length > 0 ? attachments : undefined,
     })
+    
+    // Check for errors in the response
+    if (emailResult.error) {
+      throw new Error(`Resend API error: ${JSON.stringify(emailResult.error)}`)
+    }
 
     // If admin email is provided and type is booking_notification, send to admin too
     if (emailRequest.type === 'booking_notification' && emailRequest.admin_email) {
-      await resend.emails.send({
-        from: `${companyName} <${companyEmail}>`,
+      const adminEmailResult = await resend.emails.send({
+        from: `${companyName} <${fromEmail}>`,
         to: emailRequest.admin_email,
         subject: emailSubject,
         html: emailHtml,
         attachments: attachments.length > 0 ? attachments : undefined,
       })
+      
+      if (adminEmailResult.error) {
+        console.error('Error sending admin notification:', adminEmailResult.error)
+        // Don't throw - main email was sent successfully
+      }
     }
 
     return new Response(
@@ -162,10 +177,20 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error('Error sending email:', error)
+    
+    // Provide more helpful error messages for common issues
+    let errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
+    if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+      errorMessage = '403 Forbidden: The "from" email address is not verified in Resend. Please verify your email address in the Resend dashboard (Domains → Add Email) or use onboarding@resend.dev for testing.'
+    } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+      errorMessage = '401 Unauthorized: Invalid API key. Please check your RESEND_API_KEY in Supabase Edge Function secrets.'
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: errorMessage 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
