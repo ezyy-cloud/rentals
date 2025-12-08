@@ -41,6 +41,15 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey)
 
     const emailRequest: EmailRequest = await req.json()
+    
+    // Debug logging
+    console.log('Email request received:', {
+      type: emailRequest.type,
+      rental_id: emailRequest.rental_id,
+      recipient_email: emailRequest.recipient_email,
+      has_pdf_base64: !!emailRequest.pdf_base64,
+      pdf_base64_length: emailRequest.pdf_base64?.length ?? 0,
+    })
 
     // Get system settings
     const { data: settings } = await supabase
@@ -133,7 +142,10 @@ serve(async (req) => {
         // Continue without PDF - email will still be sent
       }
     } else {
-      console.log('PDF upload skipped - pdf_base64:', !!emailRequest.pdf_base64, 'type:', emailRequest.type)
+      console.log('PDF upload skipped - pdf_base64:', !!emailRequest.pdf_base64, 'pdf_base64 type:', typeof emailRequest.pdf_base64, 'pdf_base64 length:', emailRequest.pdf_base64?.length ?? 'N/A', 'type:', emailRequest.type)
+      if (!emailRequest.pdf_base64) {
+        console.warn('PDF base64 is missing from request. Check if PDF generation succeeded on client side.')
+      }
     }
     
     console.log('PDF download URL before email generation:', pdfDownloadUrl)
