@@ -458,8 +458,12 @@ export const rentalsService = {
       // or we can skip PDF generation here since it's mainly an admin feature
       let pdfBase64: string | undefined
       // PDF generation skipped in customer app - Edge Function will handle it if rental data is available
+      console.log('Customer app: PDF generation skipped (admin app handles PDF generation)')
+      console.log('Customer app: pdfBase64 will be undefined:', pdfBase64)
 
       if (user?.email) {
+        console.log('Customer app: Sending booking confirmation email to:', user.email)
+        console.log('Customer app: PDF base64 present:', !!pdfBase64, 'Length:', pdfBase64?.length ?? 0)
         const { emailService } = await import('./email-service')
         // Update email service to accept PDF
         await emailService.sendEmail({

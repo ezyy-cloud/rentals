@@ -38,6 +38,19 @@ export const emailService = {
         throw new Error('No active session')
       }
 
+      // Log PDF status before sending
+      if (params.pdf_base64) {
+        console.log('Customer app: Sending email with PDF, PDF length:', params.pdf_base64.length)
+        console.log('Customer app: PDF base64 preview (first 100 chars):', params.pdf_base64.substring(0, 100))
+      } else {
+        console.warn('Customer app: Sending email without PDF - pdf_base64 is missing!')
+        console.log('Customer app: Email params:', JSON.stringify({ ...params, pdf_base64: params.pdf_base64 ? 'PRESENT' : 'MISSING' }))
+      }
+
+      const requestBody = JSON.stringify(params)
+      console.log('Customer app: Request body size:', requestBody.length, 'bytes')
+      console.log('Customer app: Request body includes pdf_base64:', requestBody.includes('pdf_base64'))
+
       const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
         method: 'POST',
         headers: {
@@ -45,7 +58,7 @@ export const emailService = {
           'Authorization': `Bearer ${session.access_token}`,
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
         },
-        body: JSON.stringify(params),
+        body: requestBody,
       })
 
       if (!response.ok) {
