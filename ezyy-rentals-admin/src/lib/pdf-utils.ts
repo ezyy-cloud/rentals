@@ -8,25 +8,43 @@ import { settingsService } from './settings-service'
  * Generate rental PDF and return as base64 string for email attachments
  */
 export async function generateRentalPDFBase64(rental: Rental, logoUrl?: string, settings?: SystemSettings): Promise<string> {
-  const doc = await generateRentalPDF(rental, logoUrl, settings)
-  // Convert PDF to base64 string using arraybuffer method for better compatibility
   try {
-    // Use arraybuffer output and convert to base64
-    const pdfArrayBuffer = doc.output('arraybuffer')
-    // Convert ArrayBuffer to base64
-    const bytes = new Uint8Array(pdfArrayBuffer)
-    let binary = ''
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i])
+    console.log('generateRentalPDFBase64: Starting PDF generation')
+    console.log('generateRentalPDFBase64: Rental ID:', rental?.id)
+    console.log('generateRentalPDFBase64: Settings:', settings ? 'provided' : 'not provided')
+    
+    const doc = await generateRentalPDF(rental, logoUrl, settings)
+    console.log('generateRentalPDFBase64: PDF document generated successfully')
+    
+    // Convert PDF to base64 string using arraybuffer method for better compatibility
+    try {
+      // Use arraybuffer output and convert to base64
+      const pdfArrayBuffer = doc.output('arraybuffer')
+      console.log('generateRentalPDFBase64: PDF arraybuffer size:', pdfArrayBuffer.byteLength)
+      
+      // Convert ArrayBuffer to base64
+      const bytes = new Uint8Array(pdfArrayBuffer)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      const base64 = btoa(binary)
+      console.log('generateRentalPDFBase64: Base64 conversion successful, length:', base64.length)
+      return base64
+    } catch (error) {
+      console.error('generateRentalPDFBase64: Error converting PDF to base64 using arraybuffer:', error)
+      // Fallback to datauristring method
+      console.log('generateRentalPDFBase64: Trying fallback method (datauristring)')
+      const pdfOutput = doc.output('datauristring')
+      const base64Match = pdfOutput.match(/base64,(.+)/)
+      const result = base64Match ? base64Match[1] : pdfOutput
+      console.log('generateRentalPDFBase64: Fallback successful, length:', result.length)
+      return result
     }
-    const base64 = btoa(binary)
-    return base64
   } catch (error) {
-    console.error('Error converting PDF to base64:', error)
-    // Fallback to datauristring method
-    const pdfOutput = doc.output('datauristring')
-    const base64Match = pdfOutput.match(/base64,(.+)/)
-    return base64Match ? base64Match[1] : pdfOutput
+    console.error('generateRentalPDFBase64: Fatal error generating PDF:', error)
+    console.error('generateRentalPDFBase64: Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    throw error // Re-throw to let caller handle it
   }
 }
 
