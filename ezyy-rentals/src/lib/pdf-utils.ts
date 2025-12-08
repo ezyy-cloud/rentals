@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import type { Rental } from './types'
 import type { SystemSettings } from './settings-service'
 import { settingsService } from './settings-service'
