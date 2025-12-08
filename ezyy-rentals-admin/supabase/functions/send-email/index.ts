@@ -41,15 +41,6 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey)
 
     const emailRequest: EmailRequest = await req.json()
-    
-    // Debug logging
-    console.log('Email request received:', {
-      type: emailRequest.type,
-      rental_id: emailRequest.rental_id,
-      recipient_email: emailRequest.recipient_email,
-      has_pdf_base64: !!emailRequest.pdf_base64,
-      pdf_base64_length: emailRequest.pdf_base64?.length ?? 0,
-    })
 
     // Get system settings
     const { data: settings } = await supabase
@@ -90,7 +81,6 @@ serve(async (req) => {
     let pdfDownloadUrl: string | null = null
     if (emailRequest.pdf_base64 && (emailRequest.type === 'booking_confirmation' || emailRequest.type === 'rental_agreement' || emailRequest.type === 'booking_notification')) {
       try {
-        console.log('Starting PDF upload to storage...')
         // Convert base64 string to Uint8Array
         const base64String = emailRequest.pdf_base64
         const binaryString = atob(base64String)
@@ -100,7 +90,6 @@ serve(async (req) => {
         }
         
         const fileName = `rental-${rental?.id?.substring(0, 8) ?? Date.now()}-${Date.now()}.pdf`
-        console.log('Uploading PDF with filename:', fileName)
         
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -112,15 +101,8 @@ serve(async (req) => {
           })
         
         if (uploadError) {
-          console.error('Error uploading PDF to storage:', uploadError)
-          console.error('Upload error details:', JSON.stringify(uploadError, null, 2))
-          // Check if bucket doesn't exist
-          if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
-            console.error('Storage bucket "rental-agreements" does not exist. Please create it in Supabase Dashboard.')
-          }
           // Continue without PDF URL - email will still be sent
         } else if (uploadData) {
-          console.log('PDF uploaded successfully, path:', uploadData.path)
           // Get public URL
           const { data: urlData } = supabase.storage
             .from('rental-agreements')
@@ -128,27 +110,12 @@ serve(async (req) => {
           
           if (urlData?.publicUrl) {
             pdfDownloadUrl = urlData.publicUrl
-            console.log('PDF public URL generated:', pdfDownloadUrl)
-          } else {
-            console.error('Failed to get public URL for uploaded PDF')
-            console.error('URL data:', JSON.stringify(urlData, null, 2))
           }
-        } else {
-          console.error('No upload data returned from storage upload')
         }
       } catch (error) {
-        console.error('Error uploading PDF to storage:', error)
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
         // Continue without PDF - email will still be sent
       }
-    } else {
-      console.log('PDF upload skipped - pdf_base64:', !!emailRequest.pdf_base64, 'pdf_base64 type:', typeof emailRequest.pdf_base64, 'pdf_base64 length:', emailRequest.pdf_base64?.length ?? 'N/A', 'type:', emailRequest.type)
-      if (!emailRequest.pdf_base64) {
-        console.warn('PDF base64 is missing from request. Check if PDF generation succeeded on client side.')
-      }
     }
-    
-    console.log('PDF download URL before email generation:', pdfDownloadUrl)
 
     // Generate email content based on type
     switch (emailRequest.type) {
@@ -232,8 +199,6 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error sending email:', error)
-    
     // Provide more helpful error messages for common issues
     let errorMessage = error instanceof Error ? error.message : 'Unknown error'
     

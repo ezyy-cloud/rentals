@@ -321,7 +321,6 @@ export const rentalsService = {
         .single()
 
       if (!fullRental) {
-        console.error('Could not fetch full rental data for email')
         return { data: rentalData, error: null }
       }
 
@@ -342,30 +341,18 @@ export const rentalsService = {
       // Generate PDF for attachments
       let pdfBase64: string | undefined
       try {
-        console.log('Starting PDF generation for rental:', rentalData.id)
-        console.log('Full rental data:', JSON.stringify(fullRental, null, 2))
-        console.log('Settings:', JSON.stringify(settings, null, 2))
-        
-        console.log('PDF utils imported successfully (static import)')
-        
         pdfBase64 = await generateRentalPDFBase64(fullRental as any, undefined, settings ?? undefined)
-        console.log('PDF generated successfully, length:', pdfBase64?.length ?? 0)
-        console.log('PDF base64 preview (first 100 chars):', pdfBase64?.substring(0, 100))
         
         if (!pdfBase64 || pdfBase64.length === 0) {
-          console.error('PDF generation returned empty string - this is a problem!')
           throw new Error('PDF generation returned empty string')
         }
       } catch (pdfError) {
-        console.error('Error generating PDF:', pdfError)
-        console.error('PDF error details:', pdfError instanceof Error ? pdfError.stack : String(pdfError))
-        // Continue without PDF - email will still be sent, but log the error clearly
+        // Continue without PDF - email will still be sent
         pdfBase64 = undefined
       }
 
       // Send booking confirmation to customer
       if (user?.email) {
-        console.log('Sending booking confirmation email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
         await emailService.sendBookingConfirmation(
           rentalData.id,
           user.email,
@@ -376,12 +363,10 @@ export const rentalsService = {
 
       // Send booking notification to admin
       if (settings?.email) {
-        console.log('Sending booking notification email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
         await emailService.sendBookingNotification(rentalData.id, settings.email, pdfBase64)
       }
     } catch (emailError) {
       // Don't fail rental creation if email fails
-      console.error('Error sending booking emails:', emailError)
     }
 
     return { data: rentalData, error: null }

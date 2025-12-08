@@ -9,18 +9,12 @@ import { settingsService } from './settings-service'
  */
 export async function generateRentalPDFBase64(rental: Rental, logoUrl?: string, settings?: SystemSettings): Promise<string> {
   try {
-    console.log('generateRentalPDFBase64: Starting PDF generation')
-    console.log('generateRentalPDFBase64: Rental ID:', rental?.id)
-    console.log('generateRentalPDFBase64: Settings:', settings ? 'provided' : 'not provided')
-    
     const doc = await generateRentalPDF(rental, logoUrl, settings)
-    console.log('generateRentalPDFBase64: PDF document generated successfully')
     
     // Convert PDF to base64 string using arraybuffer method for better compatibility
     try {
       // Use arraybuffer output and convert to base64
       const pdfArrayBuffer = doc.output('arraybuffer')
-      console.log('generateRentalPDFBase64: PDF arraybuffer size:', pdfArrayBuffer.byteLength)
       
       // Convert ArrayBuffer to base64
       const bytes = new Uint8Array(pdfArrayBuffer)
@@ -29,21 +23,15 @@ export async function generateRentalPDFBase64(rental: Rental, logoUrl?: string, 
         binary += String.fromCharCode(bytes[i])
       }
       const base64 = btoa(binary)
-      console.log('generateRentalPDFBase64: Base64 conversion successful, length:', base64.length)
       return base64
     } catch (error) {
-      console.error('generateRentalPDFBase64: Error converting PDF to base64 using arraybuffer:', error)
       // Fallback to datauristring method
-      console.log('generateRentalPDFBase64: Trying fallback method (datauristring)')
       const pdfOutput = doc.output('datauristring')
       const base64Match = pdfOutput.match(/base64,(.+)/)
       const result = base64Match ? base64Match[1] : pdfOutput
-      console.log('generateRentalPDFBase64: Fallback successful, length:', result.length)
       return result
     }
   } catch (error) {
-    console.error('generateRentalPDFBase64: Fatal error generating PDF:', error)
-    console.error('generateRentalPDFBase64: Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     throw error // Re-throw to let caller handle it
   }
 }
@@ -616,7 +604,6 @@ export async function loadEzyyLogo(): Promise<string | null> {
     // Use embedded SVG content as fallback
     return await convertSVGToBase64(svgContent)
   } catch (error) {
-    console.error('Failed to load and convert logo:', error)
     return null
   }
 }

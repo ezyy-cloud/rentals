@@ -465,28 +465,18 @@ export const rentalsService = {
       // Generate PDF for attachment
       let pdfBase64: string | undefined
       try {
-        console.log('Customer app: Starting PDF generation for rental:', rentalData.id)
-        console.log('Customer app: Full rental data:', JSON.stringify(fullRental, null, 2))
-        console.log('Customer app: Settings:', JSON.stringify(settings, null, 2))
-        
         pdfBase64 = await generateRentalPDFBase64(fullRental as any, undefined, settings ?? undefined)
-        console.log('Customer app: PDF generated successfully, length:', pdfBase64?.length ?? 0)
-        console.log('Customer app: PDF base64 preview (first 100 chars):', pdfBase64?.substring(0, 100))
         
         if (!pdfBase64 || pdfBase64.length === 0) {
-          console.error('Customer app: PDF generation returned empty string - this is a problem!')
           throw new Error('PDF generation returned empty string')
         }
       } catch (pdfError) {
-        console.error('Customer app: Error generating PDF:', pdfError)
-        console.error('Customer app: PDF error details:', pdfError instanceof Error ? pdfError.stack : String(pdfError))
-        // Continue without PDF - email will still be sent, but log the error clearly
+        // Continue without PDF - email will still be sent
         pdfBase64 = undefined
       }
 
       // Send booking confirmation to customer
       if (user?.email) {
-        console.log('Customer app: Sending booking confirmation email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
         await emailService.sendBookingConfirmation(
           rentalData.id,
           user.email,
@@ -497,7 +487,6 @@ export const rentalsService = {
 
       // Send booking notification to admin
       if (settings?.email) {
-        console.log('Customer app: Sending booking notification email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
         await emailService.sendBookingNotification(rentalData.id, settings.email, pdfBase64)
       }
     } catch (emailError) {
