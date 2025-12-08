@@ -341,10 +341,16 @@ export const rentalsService = {
       // Generate PDF for attachments
       let pdfBase64: string | undefined
       try {
+        console.log('Starting PDF generation for rental:', rentalData.id)
         const { generateRentalPDFBase64 } = await import('./pdf-utils')
         pdfBase64 = await generateRentalPDFBase64(fullRental as any, undefined, settings ?? undefined)
+        console.log('PDF generated successfully, length:', pdfBase64?.length ?? 0)
+        if (!pdfBase64 || pdfBase64.length === 0) {
+          console.warn('PDF generation returned empty string')
+        }
       } catch (pdfError) {
         console.error('Error generating PDF:', pdfError)
+        console.error('PDF error details:', pdfError instanceof Error ? pdfError.stack : String(pdfError))
         // Continue without PDF - email will still be sent
       }
 

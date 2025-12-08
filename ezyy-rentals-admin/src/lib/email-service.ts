@@ -38,6 +38,13 @@ export const emailService = {
         throw new Error('No active session')
       }
 
+      // Log PDF status before sending
+      if (params.pdf_base64) {
+        console.log('Sending email with PDF, PDF length:', params.pdf_base64.length)
+      } else {
+        console.log('Sending email without PDF')
+      }
+
       const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
         method: 'POST',
         headers: {
