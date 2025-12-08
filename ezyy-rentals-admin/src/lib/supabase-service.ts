@@ -307,6 +307,23 @@ export const rentalsService = {
 
     // Send booking confirmation email to customer and notification to admin
     try {
+      // Get full rental data with relations for PDF generation
+      const { data: fullRental } = await supabase
+        .from('rentals')
+        .select(`
+          *,
+          user:users(*),
+          device:devices(*, device_type:device_types(*)),
+          accessories:rental_accessories(*, accessory:accessories(*))
+        `)
+        .eq('id', rentalData.id)
+        .single()
+
+      if (!fullRental) {
+        console.error('Could not fetch full rental data for email')
+        return { data: rentalData, error: null }
+      }
+
       // Get user email for customer confirmation
       const { data: user } = await supabase
         .from('users')
@@ -314,25 +331,36 @@ export const rentalsService = {
         .eq('id', rental.user_id)
         .single()
 
-      // Get admin email from settings
+      // Get admin email and settings for PDF generation
       const { data: settings } = await supabase
         .from('system_settings')
-        .select('email')
+        .select('*')
         .limit(1)
         .single()
+
+      // Generate PDF for attachments
+      let pdfBase64: string | undefined
+      try {
+        const { generateRentalPDFBase64 } = await import('./pdf-utils')
+        pdfBase64 = await generateRentalPDFBase64(fullRental as any, undefined, settings ?? undefined)
+      } catch (pdfError) {
+        console.error('Error generating PDF:', pdfError)
+        // Continue without PDF - email will still be sent
+      }
 
       // Send booking confirmation to customer
       if (user?.email) {
         await emailService.sendBookingConfirmation(
           rentalData.id,
           user.email,
-          `${user.first_name} ${user.last_name}`
+          `${user.first_name} ${user.last_name}`,
+          pdfBase64
         )
       }
 
       // Send booking notification to admin
       if (settings?.email) {
-        await emailService.sendBookingNotification(rentalData.id, settings.email)
+        await emailService.sendBookingNotification(rentalData.id, settings.email, pdfBase64)
       }
     } catch (emailError) {
       // Don't fail rental creation if email fails

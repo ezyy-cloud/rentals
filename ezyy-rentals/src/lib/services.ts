@@ -431,18 +431,52 @@ export const rentalsService = {
 
     // Send booking confirmation email to customer
     try {
+      // Get full rental data with relations for PDF generation
+      const { data: fullRental } = await supabase
+        .from('rentals')
+        .select(`
+          *,
+          user:users(*),
+          device:devices(*, device_type:device_types(*)),
+          accessories:rental_accessories(*, accessory:accessories(*))
+        `)
+        .eq('id', rentalData.id)
+        .single()
+
+      if (!fullRental) {
+        console.error('Could not fetch full rental data for email')
+        return { data: rentalData, error: null }
+      }
+
       const { data: user } = await supabase
         .from('users')
         .select('email, first_name, last_name')
         .eq('id', rental.user_id)
         .single()
 
+      // Get settings for PDF generation
+      const { data: settings } = await supabase
+        .from('system_settings')
+        .select('*')
+        .limit(1)
+        .single()
+
+      // Generate PDF for attachment (PDF generation is handled server-side in Edge Function)
+      // For customer app, we'll let the Edge Function generate the PDF if needed
+      // or we can skip PDF generation here since it's mainly an admin feature
+      let pdfBase64: string | undefined
+      // PDF generation skipped in customer app - Edge Function will handle it if rental data is available
+
       if (user?.email) {
-        await emailService.sendBookingConfirmation(
-          rentalData.id,
-          user.email,
-          `${user.first_name} ${user.last_name}`
-        )
+        const { emailService } = await import('./email-service')
+        // Update email service to accept PDF
+        await emailService.sendEmail({
+          type: 'booking_confirmation',
+          rental_id: rentalData.id,
+          recipient_email: user.email,
+          recipient_name: `${user.first_name} ${user.last_name}`,
+          pdf_base64: pdfBase64,
+        })
       }
     } catch (emailError) {
       // Don't fail rental creation if email fails

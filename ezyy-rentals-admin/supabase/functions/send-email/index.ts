@@ -16,6 +16,7 @@ interface EmailRequest {
   recipient_name?: string
   admin_email?: string
   custom_data?: Record<string, any>
+  pdf_base64?: string // Base64 encoded PDF content
 }
 
 serve(async (req) => {
@@ -73,21 +74,18 @@ serve(async (req) => {
       rental = rentalData
     }
 
-    // Generate PDF if needed (for booking confirmation and rental agreement)
-    if ((emailRequest.type === 'booking_confirmation' || emailRequest.type === 'rental_agreement' || emailRequest.type === 'booking_notification') && rental) {
+    // Add PDF attachment if provided (generated on client side)
+    if (emailRequest.pdf_base64 && (emailRequest.type === 'booking_confirmation' || emailRequest.type === 'rental_agreement' || emailRequest.type === 'booking_notification')) {
       try {
-        // Generate PDF using a simple approach - we'll create a basic PDF in the edge function
-        // For production, you might want to use a PDF generation service or pre-generate PDFs
-        const pdfContent = await generateRentalPDF(rental, settings)
-        if (pdfContent) {
-          attachments.push({
-            filename: `rental-agreement-${rental.id.substring(0, 8)}.pdf`,
-            content: pdfContent,
-            type: 'application/pdf',
-          })
-        }
+        // Convert base64 to buffer for Resend
+        // Resend expects base64 string directly
+        attachments.push({
+          filename: `rental-agreement-${rental?.id?.substring(0, 8) ?? 'rental'}.pdf`,
+          content: emailRequest.pdf_base64,
+          type: 'application/pdf',
+        })
       } catch (error) {
-        console.error('Error generating PDF:', error)
+        console.error('Error adding PDF attachment:', error)
         // Continue without PDF attachment
       }
     }
@@ -152,21 +150,8 @@ serve(async (req) => {
       throw new Error(`Resend API error: ${JSON.stringify(emailResult.error)}`)
     }
 
-    // If admin email is provided and type is booking_notification, send to admin too
-    if (emailRequest.type === 'booking_notification' && emailRequest.admin_email) {
-      const adminEmailResult = await resend.emails.send({
-        from: `${companyName} <${fromEmail}>`,
-        to: emailRequest.admin_email,
-        subject: emailSubject,
-        html: emailHtml,
-        attachments: attachments.length > 0 ? attachments : undefined,
-      })
-      
-      if (adminEmailResult.error) {
-        console.error('Error sending admin notification:', adminEmailResult.error)
-        // Don't throw - main email was sent successfully
-      }
-    }
+    // For booking_notification type, the recipient_email is already the admin email
+    // So the email has already been sent above. No need to send duplicate.
 
     return new Response(
       JSON.stringify({ success: true, messageId: emailResult.data?.id }),

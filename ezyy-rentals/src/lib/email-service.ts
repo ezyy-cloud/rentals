@@ -18,6 +18,7 @@ interface SendEmailParams {
   recipient_name?: string
   admin_email?: string
   custom_data?: Record<string, any>
+  pdf_base64?: string // Base64 encoded PDF content
 }
 
 export const emailService = {

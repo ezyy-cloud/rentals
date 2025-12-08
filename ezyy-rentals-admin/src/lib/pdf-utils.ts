@@ -4,6 +4,18 @@ import type { Rental } from './supabase-types'
 import type { SystemSettings } from './settings-service'
 import { settingsService } from './settings-service'
 
+/**
+ * Generate rental PDF and return as base64 string for email attachments
+ */
+export async function generateRentalPDFBase64(rental: Rental, logoUrl?: string, settings?: SystemSettings): Promise<string> {
+  const doc = await generateRentalPDF(rental, logoUrl, settings)
+  // Convert PDF to base64 string (remove data URL prefix if present)
+  const pdfOutput = doc.output('datauristring')
+  // Extract base64 part (after "data:application/pdf;base64,")
+  const base64Match = pdfOutput.match(/base64,(.+)/)
+  return base64Match ? base64Match[1] : pdfOutput
+}
+
 export async function generateRentalPDF(rental: Rental, logoUrl?: string, settings?: SystemSettings) {
   // Get settings if not provided
   if (!settings) {

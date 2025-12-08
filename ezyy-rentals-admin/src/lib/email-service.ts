@@ -18,6 +18,7 @@ interface SendEmailParams {
   recipient_name?: string
   admin_email?: string
   custom_data?: Record<string, any>
+  pdf_base64?: string // Base64 encoded PDF content
 }
 
 export const emailService = {
@@ -66,24 +67,26 @@ export const emailService = {
   /**
    * Send booking confirmation email to customer
    */
-  async sendBookingConfirmation(rentalId: string, customerEmail: string, customerName?: string): Promise<{ success: boolean; error?: string }> {
+  async sendBookingConfirmation(rentalId: string, customerEmail: string, customerName?: string, pdfBase64?: string): Promise<{ success: boolean; error?: string }> {
     return this.sendEmail({
       type: 'booking_confirmation',
       rental_id: rentalId,
       recipient_email: customerEmail,
       recipient_name: customerName,
+      pdf_base64: pdfBase64,
     })
   },
 
   /**
    * Send booking notification email to admin
    */
-  async sendBookingNotification(rentalId: string, adminEmail: string): Promise<{ success: boolean; error?: string }> {
+  async sendBookingNotification(rentalId: string, adminEmail: string, pdfBase64?: string): Promise<{ success: boolean; error?: string }> {
     return this.sendEmail({
       type: 'booking_notification',
       rental_id: rentalId,
       recipient_email: adminEmail,
       admin_email: adminEmail,
+      pdf_base64: pdfBase64,
     })
   },
 
