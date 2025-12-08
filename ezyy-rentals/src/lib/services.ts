@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { emailService } from './email-service'
+import { generateRentalPDFBase64 } from './pdf-utils'
 import type { User, DeviceType, Device, Rental } from './types'
 
 // Device Types
@@ -454,17 +455,37 @@ export const rentalsService = {
         .eq('id', rental.user_id)
         .single()
 
-      // Generate PDF for attachment (PDF generation is handled server-side in Edge Function)
-      // For customer app, we'll let the Edge Function generate the PDF if needed
-      // or we can skip PDF generation here since it's mainly an admin feature
+      // Get settings for PDF generation
+      const { data: settings } = await supabase
+        .from('system_settings')
+        .select('*')
+        .limit(1)
+        .single()
+
+      // Generate PDF for attachment
       let pdfBase64: string | undefined
-      // PDF generation skipped in customer app - Edge Function will handle it if rental data is available
-      console.log('Customer app: PDF generation skipped (admin app handles PDF generation)')
-      console.log('Customer app: pdfBase64 will be undefined:', pdfBase64)
+      try {
+        console.log('Customer app: Starting PDF generation for rental:', rentalData.id)
+        console.log('Customer app: Full rental data:', JSON.stringify(fullRental, null, 2))
+        console.log('Customer app: Settings:', JSON.stringify(settings, null, 2))
+        
+        pdfBase64 = await generateRentalPDFBase64(fullRental as any, undefined, settings ?? undefined)
+        console.log('Customer app: PDF generated successfully, length:', pdfBase64?.length ?? 0)
+        console.log('Customer app: PDF base64 preview (first 100 chars):', pdfBase64?.substring(0, 100))
+        
+        if (!pdfBase64 || pdfBase64.length === 0) {
+          console.error('Customer app: PDF generation returned empty string - this is a problem!')
+          throw new Error('PDF generation returned empty string')
+        }
+      } catch (pdfError) {
+        console.error('Customer app: Error generating PDF:', pdfError)
+        console.error('Customer app: PDF error details:', pdfError instanceof Error ? pdfError.stack : String(pdfError))
+        // Continue without PDF - email will still be sent, but log the error clearly
+        pdfBase64 = undefined
+      }
 
       if (user?.email) {
-        console.log('Customer app: Sending booking confirmation email to:', user.email)
-        console.log('Customer app: PDF base64 present:', !!pdfBase64, 'Length:', pdfBase64?.length ?? 0)
+        console.log('Customer app: Sending booking confirmation email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
         // Update email service to accept PDF
         await emailService.sendEmail({
           type: 'booking_confirmation',
