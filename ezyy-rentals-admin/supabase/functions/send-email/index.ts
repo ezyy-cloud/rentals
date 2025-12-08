@@ -74,19 +74,46 @@ serve(async (req) => {
       rental = rentalData
     }
 
-    // Add PDF attachment if provided (generated on client side)
+    // Upload PDF to Supabase Storage and get download link
+    let pdfDownloadUrl: string | null = null
     if (emailRequest.pdf_base64 && (emailRequest.type === 'booking_confirmation' || emailRequest.type === 'rental_agreement' || emailRequest.type === 'booking_notification')) {
       try {
-        // Convert base64 to buffer for Resend
-        // Resend expects base64 string directly
-        attachments.push({
-          filename: `rental-agreement-${rental?.id?.substring(0, 8) ?? 'rental'}.pdf`,
-          content: emailRequest.pdf_base64,
-          type: 'application/pdf',
-        })
+        // Convert base64 string to Uint8Array
+        const base64String = emailRequest.pdf_base64
+        const binaryString = atob(base64String)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+        
+        const fileName = `rental-${rental?.id?.substring(0, 8) ?? Date.now()}-${Date.now()}.pdf`
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('rental-agreements')
+          .upload(fileName, bytes, {
+            contentType: 'application/pdf',
+            cacheControl: '3600',
+            upsert: false
+          })
+        
+        if (uploadError) {
+          console.error('Error uploading PDF to storage:', uploadError)
+          // Continue without PDF URL - email will still be sent
+        } else if (uploadData) {
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('rental-agreements')
+            .getPublicUrl(uploadData.path)
+          
+          if (urlData?.publicUrl) {
+            pdfDownloadUrl = urlData.publicUrl
+            console.log('PDF uploaded successfully:', pdfDownloadUrl)
+          }
+        }
       } catch (error) {
-        console.error('Error adding PDF attachment:', error)
-        // Continue without PDF attachment
+        console.error('Error uploading PDF to storage:', error)
+        // Continue without PDF - email will still be sent
       }
     }
 
@@ -94,12 +121,12 @@ serve(async (req) => {
     switch (emailRequest.type) {
       case 'booking_confirmation':
         emailSubject = `Booking Confirmation - ${companyName}`
-        emailHtml = generateBookingConfirmationEmail(rental, companyName, companyEmail, companyPhone, companyWebsite)
+        emailHtml = generateBookingConfirmationEmail(rental, companyName, companyEmail, companyPhone, companyWebsite, pdfDownloadUrl)
         break
 
       case 'booking_notification':
         emailSubject = `New Booking - ${rental?.device?.name ?? 'Device'}`
-        emailHtml = generateBookingNotificationEmail(rental, companyName, companyEmail, companyPhone)
+        emailHtml = generateBookingNotificationEmail(rental, companyName, companyEmail, companyPhone, pdfDownloadUrl)
         break
 
       case 'due_return_7days':
@@ -124,7 +151,7 @@ serve(async (req) => {
 
       case 'rental_agreement':
         emailSubject = `Rental Agreement - ${companyName}`
-        emailHtml = generateRentalAgreementEmail(rental, companyName, companyEmail, companyPhone)
+        emailHtml = generateRentalAgreementEmail(rental, companyName, companyEmail, companyPhone, pdfDownloadUrl)
         break
 
       default:
@@ -136,6 +163,22 @@ serve(async (req) => {
     // For testing, you can use: onboarding@resend.dev
     // For production, verify your domain/email in Resend dashboard
     const fromEmail = companyEmail || 'onboarding@resend.dev'
+    
+    // Check if sending to the same email address (Resend doesn't allow this)
+    // If so, skip sending or use a different approach
+    if (fromEmail.toLowerCase() === emailRequest.recipient_email.toLowerCase()) {
+      console.warn(`Skipping email send: from and to addresses are the same (${fromEmail})`)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Cannot send email to the same address as the sender. Please use a different recipient email.' 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
+    }
     
     const emailResult = await resend.emails.send({
       from: `${companyName} <${fromEmail}>`,
@@ -186,7 +229,7 @@ serve(async (req) => {
 })
 
 // Email template generators
-function generateBookingConfirmationEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string, companyWebsite: string): string {
+function generateBookingConfirmationEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string, companyWebsite: string, pdfDownloadUrl?: string | null): string {
   const startDate = new Date(rental.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const endDate = new Date(rental.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const daysRented = Math.ceil((new Date(rental.end_date).getTime() - new Date(rental.start_date).getTime()) / (1000 * 60 * 60 * 24))
@@ -260,10 +303,21 @@ function generateBookingConfirmationEmail(rental: any, companyName: string, comp
         ` : ''}
       </div>
 
+      ${pdfDownloadUrl ? `
       <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <p style="margin: 0;"><strong>📎 Your rental agreement PDF is attached to this email.</strong></p>
-        <p style="margin: 10px 0 0 0;">Please review the terms and conditions carefully. If you have any questions, don't hesitate to contact us.</p>
+        <p style="margin: 0;"><strong>📎 Your rental agreement PDF is available for download.</strong></p>
+        <p style="margin: 10px 0 0 0;">Please download, review, and sign the rental agreement. Bring the signed copy with you when collecting the device or it will be required upon delivery.</p>
+        <div style="margin-top: 15px; text-align: center;">
+          <a href="${pdfDownloadUrl}" style="display: inline-block; background-color: #2c3e50; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Rental Agreement PDF</a>
+        </div>
+        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: ${pdfDownloadUrl}</p>
       </div>
+      ` : `
+      <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="margin: 0;"><strong>⚠️ Rental Agreement</strong></p>
+        <p style="margin: 10px 0 0 0;">A rental agreement will be provided when you collect the device or upon delivery. Please review and sign it at that time.</p>
+      </div>
+      `}
 
       <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
         <p style="margin: 0;"><strong>${companyName}</strong></p>
@@ -276,7 +330,7 @@ function generateBookingConfirmationEmail(rental: any, companyName: string, comp
   `
 }
 
-function generateBookingNotificationEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string): string {
+function generateBookingNotificationEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string, pdfDownloadUrl?: string | null): string {
   const startDate = new Date(rental.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   const endDate = new Date(rental.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   
@@ -339,6 +393,14 @@ function generateBookingNotificationEmail(rental: any, companyName: string, comp
         ${rental.delivery_method === 'shipping' && !rental.shipped_date ? `
         <div style="background-color: #fff3cd; padding: 10px; border-radius: 4px; margin-top: 15px;">
           <strong>⚠️ Action Required:</strong> This rental needs to be shipped to the customer.
+        </div>
+        ` : ''}
+        ${pdfDownloadUrl ? `
+        <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 15px;">
+          <p style="margin: 0;"><strong>📎 Rental Agreement PDF:</strong></p>
+          <div style="margin-top: 10px;">
+            <a href="${pdfDownloadUrl}" style="color: #2c3e50; text-decoration: underline;">Download Rental Agreement</a>
+          </div>
         </div>
         ` : ''}
       </div>
@@ -502,7 +564,7 @@ function generateSubscriptionDueEmail(customData: any, companyName: string, comp
   `
 }
 
-function generateRentalAgreementEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string): string {
+function generateRentalAgreementEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string, pdfDownloadUrl?: string | null): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -515,12 +577,24 @@ function generateRentalAgreementEmail(rental: any, companyName: string, companyE
       <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <h1 style="color: #2c3e50; margin-top: 0;">Rental Agreement</h1>
         <p>Dear ${rental.user?.first_name ?? 'Customer'},</p>
-        <p>Please find your rental agreement attached to this email.</p>
+        <p>Please find your rental agreement available for download below.</p>
       </div>
 
+      ${pdfDownloadUrl ? `
       <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <p style="margin: 0;"><strong>📎 Your rental agreement PDF is attached to this email.</strong></p>
+        <p style="margin: 0;"><strong>📎 Your rental agreement PDF is available for download.</strong></p>
+        <p style="margin: 10px 0 0 0;">Please download, review, and sign the rental agreement. Bring the signed copy with you when collecting the device or it will be required upon delivery.</p>
+        <div style="margin-top: 15px; text-align: center;">
+          <a href="${pdfDownloadUrl}" style="display: inline-block; background-color: #2c3e50; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Rental Agreement PDF</a>
+        </div>
+        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: ${pdfDownloadUrl}</p>
       </div>
+      ` : `
+      <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="margin: 0;"><strong>⚠️ Rental Agreement</strong></p>
+        <p style="margin: 10px 0 0 0;">A rental agreement will be provided when you collect the device or upon delivery.</p>
+      </div>
+      `}
 
       <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
         <p style="margin: 0;"><strong>${companyName}</strong></p>
