@@ -9,11 +9,25 @@ import { settingsService } from './settings-service'
  */
 export async function generateRentalPDFBase64(rental: Rental, logoUrl?: string, settings?: SystemSettings): Promise<string> {
   const doc = await generateRentalPDF(rental, logoUrl, settings)
-  // Convert PDF to base64 string (remove data URL prefix if present)
-  const pdfOutput = doc.output('datauristring')
-  // Extract base64 part (after "data:application/pdf;base64,")
-  const base64Match = pdfOutput.match(/base64,(.+)/)
-  return base64Match ? base64Match[1] : pdfOutput
+  // Convert PDF to base64 string using arraybuffer method for better compatibility
+  try {
+    // Use arraybuffer output and convert to base64
+    const pdfArrayBuffer = doc.output('arraybuffer')
+    // Convert ArrayBuffer to base64
+    const bytes = new Uint8Array(pdfArrayBuffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    const base64 = btoa(binary)
+    return base64
+  } catch (error) {
+    console.error('Error converting PDF to base64:', error)
+    // Fallback to datauristring method
+    const pdfOutput = doc.output('datauristring')
+    const base64Match = pdfOutput.match(/base64,(.+)/)
+    return base64Match ? base64Match[1] : pdfOutput
+  }
 }
 
 export async function generateRentalPDF(rental: Rental, logoUrl?: string, settings?: SystemSettings) {
