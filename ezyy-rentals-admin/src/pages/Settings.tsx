@@ -11,6 +11,7 @@ export function Settings() {
   const [settings, setSettings] = useState<Omit<SystemSettings, 'id' | 'created_at' | 'updated_at'>>({
     company_name: '',
     email: '',
+    notification_email: '',
     phone: '',
     website: '',
     address: '',
@@ -31,6 +32,7 @@ export function Settings() {
         setSettings({
           company_name: data.company_name ?? '',
           email: data.email ?? '',
+          notification_email: data.notification_email ?? '',
           phone: data.phone ?? '',
           website: data.website ?? '',
           address: data.address ?? '',
@@ -124,7 +126,7 @@ export function Settings() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-1">
-                  Email <span className="text-red-600">*</span>
+                  Company Email <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="email"
@@ -134,6 +136,24 @@ export function Settings() {
                   className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
                   placeholder="info@ezyyrentals.com"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Used for company contact and booking notifications
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-black mb-1">
+                  Notification Email (Resend)
+                </label>
+                <input
+                  type="email"
+                  value={settings.notification_email ?? ''}
+                  onChange={(e) => handleChange('notification_email', e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-black rounded focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="onboarding@resend.dev"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Email used as "from" address in Resend emails. Must be verified in Resend dashboard.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-black mb-1">

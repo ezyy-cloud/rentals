@@ -51,6 +51,9 @@ serve(async (req) => {
 
     const companyName = settings?.company_name ?? 'Ezyy Rentals'
     const companyEmail = settings?.email ?? 'info@ezyyrentals.com'
+    // Use notification_email as "from" address (must be verified in Resend)
+    // Fallback to companyEmail, then to Resend test email
+    const notificationEmail = settings?.notification_email ?? companyEmail ?? 'onboarding@resend.dev'
     const companyPhone = settings?.phone ?? '(555) 123-4567'
     const companyWebsite = settings?.website ?? 'www.ezyyrentals.com'
 
@@ -159,15 +162,10 @@ serve(async (req) => {
     }
 
     // Send email
-    // Note: The "from" email must be verified in Resend
-    // For testing, you can use: onboarding@resend.dev
-    // For production, verify your domain/email in Resend dashboard
-    const fromEmail = companyEmail || 'onboarding@resend.dev'
-    
+    // Use notification_email as "from" address (must be verified in Resend)
     // Check if sending to the same email address (Resend doesn't allow this)
-    // If so, skip sending or use a different approach
-    if (fromEmail.toLowerCase() === emailRequest.recipient_email.toLowerCase()) {
-      console.warn(`Skipping email send: from and to addresses are the same (${fromEmail})`)
+    if (notificationEmail.toLowerCase() === emailRequest.recipient_email.toLowerCase()) {
+      console.warn(`Skipping email send: from and to addresses are the same (${notificationEmail})`)
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -181,7 +179,7 @@ serve(async (req) => {
     }
     
     const emailResult = await resend.emails.send({
-      from: `${companyName} <${fromEmail}>`,
+      from: `${companyName} <${notificationEmail}>`,
       to: emailRequest.recipient_email,
       subject: emailSubject,
       html: emailHtml,

@@ -3,7 +3,8 @@ import { supabase } from './supabase'
 export interface SystemSettings {
   id?: string
   company_name: string
-  email: string
+  email: string // Company contact email and email where booking notifications are sent
+  notification_email?: string // Email used as "from" address in Resend (must be verified in Resend)
   phone: string
   website: string
   address?: string
@@ -15,6 +16,7 @@ const SETTINGS_KEY = 'system_settings'
 const DEFAULT_SETTINGS: SystemSettings = {
   company_name: 'Ezyy Rentals',
   email: 'info@ezyyrentals.com',
+  notification_email: 'onboarding@resend.dev', // Default to Resend test email
   phone: '(555) 123-4567',
   website: 'www.ezyyrentals.com',
   address: '',
