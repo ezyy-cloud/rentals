@@ -596,14 +596,14 @@ function generateRentalAgreementEmail(rental: any, companyName: string, companyE
         <p>Please find your rental agreement available for download below.</p>
       </div>
 
-      ${pdfDownloadUrl ? `
+      ${pdfDownloadUrl && pdfDownloadUrl.trim() !== '' ? `
       <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
         <p style="margin: 0;"><strong>📎 Rental Agreement</strong></p>
         <p style="margin: 10px 0 0 0;">Please click the link below to download the rental agreement and sign it. Produce the signed agreement when receiving the kit.</p>
         <div style="margin-top: 15px; text-align: center;">
           <a href="${pdfDownloadUrl}" style="display: inline-block; background-color: #2c3e50; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Rental Agreement PDF</a>
         </div>
-        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: <a href="${pdfDownloadUrl}" style="color: #2c3e50; text-decoration: underline;">${pdfDownloadUrl}</a></p>
+        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: <a href="${pdfDownloadUrl}" style="color: #2c3e50; text-decoration: underline; word-break: break-all;">${pdfDownloadUrl}</a></p>
       </div>
       ` : `
       <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
