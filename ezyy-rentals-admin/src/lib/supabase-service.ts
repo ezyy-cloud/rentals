@@ -302,7 +302,7 @@ export const rentalsService = {
       })
 
       if (notificationError) {
-        console.error('Error creating shipping notification:', notificationError)
+        // Error creating notification - continue silently
       }
     }
 

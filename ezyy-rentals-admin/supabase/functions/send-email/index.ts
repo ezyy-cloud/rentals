@@ -162,7 +162,6 @@ serve(async (req) => {
     // Use notification_email as "from" address (must be verified in Resend)
     // Check if sending to the same email address (Resend doesn't allow this)
     if (notificationEmail.toLowerCase() === emailRequest.recipient_email.toLowerCase()) {
-      console.warn(`Skipping email send: from and to addresses are the same (${notificationEmail})`)
       return new Response(
         JSON.stringify({ 
           success: false, 
