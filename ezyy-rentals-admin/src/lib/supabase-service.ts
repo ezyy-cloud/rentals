@@ -342,20 +342,30 @@ export const rentalsService = {
       let pdfBase64: string | undefined
       try {
         console.log('Starting PDF generation for rental:', rentalData.id)
+        console.log('Full rental data:', JSON.stringify(fullRental, null, 2))
+        console.log('Settings:', JSON.stringify(settings, null, 2))
+        
         const { generateRentalPDFBase64 } = await import('./pdf-utils')
+        console.log('PDF utils imported successfully')
+        
         pdfBase64 = await generateRentalPDFBase64(fullRental as any, undefined, settings ?? undefined)
         console.log('PDF generated successfully, length:', pdfBase64?.length ?? 0)
+        console.log('PDF base64 preview (first 100 chars):', pdfBase64?.substring(0, 100))
+        
         if (!pdfBase64 || pdfBase64.length === 0) {
-          console.warn('PDF generation returned empty string')
+          console.error('PDF generation returned empty string - this is a problem!')
+          throw new Error('PDF generation returned empty string')
         }
       } catch (pdfError) {
         console.error('Error generating PDF:', pdfError)
         console.error('PDF error details:', pdfError instanceof Error ? pdfError.stack : String(pdfError))
-        // Continue without PDF - email will still be sent
+        // Continue without PDF - email will still be sent, but log the error clearly
+        pdfBase64 = undefined
       }
 
       // Send booking confirmation to customer
       if (user?.email) {
+        console.log('Sending booking confirmation email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
         await emailService.sendBookingConfirmation(
           rentalData.id,
           user.email,
@@ -366,6 +376,7 @@ export const rentalsService = {
 
       // Send booking notification to admin
       if (settings?.email) {
+        console.log('Sending booking notification email with PDF:', !!pdfBase64, 'PDF length:', pdfBase64?.length ?? 0)
         await emailService.sendBookingNotification(rentalData.id, settings.email, pdfBase64)
       }
     } catch (emailError) {
