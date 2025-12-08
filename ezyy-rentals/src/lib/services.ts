@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { emailService } from './email-service'
 import type { User, DeviceType, Device, Rental } from './types'
 
 // Device Types
@@ -464,7 +465,6 @@ export const rentalsService = {
       if (user?.email) {
         console.log('Customer app: Sending booking confirmation email to:', user.email)
         console.log('Customer app: PDF base64 present:', !!pdfBase64, 'Length:', pdfBase64?.length ?? 0)
-        const { emailService } = await import('./email-service')
         // Update email service to accept PDF
         await emailService.sendEmail({
           type: 'booking_confirmation',

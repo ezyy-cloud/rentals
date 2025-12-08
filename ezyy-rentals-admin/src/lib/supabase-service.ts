@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { emailService } from './email-service'
+import { generateRentalPDFBase64 } from './pdf-utils'
 import type { User, DeviceType, Device, Accessory, Rental, SubscriptionPayment } from './supabase-types'
 
 // Users
@@ -345,8 +346,7 @@ export const rentalsService = {
         console.log('Full rental data:', JSON.stringify(fullRental, null, 2))
         console.log('Settings:', JSON.stringify(settings, null, 2))
         
-        const { generateRentalPDFBase64 } = await import('./pdf-utils')
-        console.log('PDF utils imported successfully')
+        console.log('PDF utils imported successfully (static import)')
         
         pdfBase64 = await generateRentalPDFBase64(fullRental as any, undefined, settings ?? undefined)
         console.log('PDF generated successfully, length:', pdfBase64?.length ?? 0)
