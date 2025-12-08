@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import { emailService } from './email-service'
 import type { User, DeviceType, Device, Rental } from './types'
 
 // Device Types
