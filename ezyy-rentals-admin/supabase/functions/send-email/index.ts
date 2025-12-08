@@ -81,6 +81,7 @@ serve(async (req) => {
     let pdfDownloadUrl: string | null = null
     if (emailRequest.pdf_base64 && (emailRequest.type === 'booking_confirmation' || emailRequest.type === 'rental_agreement' || emailRequest.type === 'booking_notification')) {
       try {
+        console.log('Starting PDF upload to storage...')
         // Convert base64 string to Uint8Array
         const base64String = emailRequest.pdf_base64
         const binaryString = atob(base64String)
@@ -90,6 +91,7 @@ serve(async (req) => {
         }
         
         const fileName = `rental-${rental?.id?.substring(0, 8) ?? Date.now()}-${Date.now()}.pdf`
+        console.log('Uploading PDF with filename:', fileName)
         
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -102,8 +104,14 @@ serve(async (req) => {
         
         if (uploadError) {
           console.error('Error uploading PDF to storage:', uploadError)
+          console.error('Upload error details:', JSON.stringify(uploadError, null, 2))
+          // Check if bucket doesn't exist
+          if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
+            console.error('Storage bucket "rental-agreements" does not exist. Please create it in Supabase Dashboard.')
+          }
           // Continue without PDF URL - email will still be sent
         } else if (uploadData) {
+          console.log('PDF uploaded successfully, path:', uploadData.path)
           // Get public URL
           const { data: urlData } = supabase.storage
             .from('rental-agreements')
@@ -111,14 +119,24 @@ serve(async (req) => {
           
           if (urlData?.publicUrl) {
             pdfDownloadUrl = urlData.publicUrl
-            console.log('PDF uploaded successfully:', pdfDownloadUrl)
+            console.log('PDF public URL generated:', pdfDownloadUrl)
+          } else {
+            console.error('Failed to get public URL for uploaded PDF')
+            console.error('URL data:', JSON.stringify(urlData, null, 2))
           }
+        } else {
+          console.error('No upload data returned from storage upload')
         }
       } catch (error) {
         console.error('Error uploading PDF to storage:', error)
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
         // Continue without PDF - email will still be sent
       }
+    } else {
+      console.log('PDF upload skipped - pdf_base64:', !!emailRequest.pdf_base64, 'type:', emailRequest.type)
     }
+    
+    console.log('PDF download URL before email generation:', pdfDownloadUrl)
 
     // Generate email content based on type
     switch (emailRequest.type) {
@@ -303,12 +321,12 @@ function generateBookingConfirmationEmail(rental: any, companyName: string, comp
 
       ${pdfDownloadUrl ? `
       <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <p style="margin: 0;"><strong>📎 Your rental agreement PDF is available for download.</strong></p>
-        <p style="margin: 10px 0 0 0;">Please download, review, and sign the rental agreement. Bring the signed copy with you when collecting the device or it will be required upon delivery.</p>
+        <p style="margin: 0;"><strong>📎 Rental Agreement</strong></p>
+        <p style="margin: 10px 0 0 0;">Please click the link below to download the rental agreement and sign it. Produce the signed agreement when receiving the kit.</p>
         <div style="margin-top: 15px; text-align: center;">
           <a href="${pdfDownloadUrl}" style="display: inline-block; background-color: #2c3e50; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Rental Agreement PDF</a>
         </div>
-        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: ${pdfDownloadUrl}</p>
+        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: <a href="${pdfDownloadUrl}" style="color: #2c3e50; text-decoration: underline;">${pdfDownloadUrl}</a></p>
       </div>
       ` : `
       <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -580,12 +598,12 @@ function generateRentalAgreementEmail(rental: any, companyName: string, companyE
 
       ${pdfDownloadUrl ? `
       <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <p style="margin: 0;"><strong>📎 Your rental agreement PDF is available for download.</strong></p>
-        <p style="margin: 10px 0 0 0;">Please download, review, and sign the rental agreement. Bring the signed copy with you when collecting the device or it will be required upon delivery.</p>
+        <p style="margin: 0;"><strong>📎 Rental Agreement</strong></p>
+        <p style="margin: 10px 0 0 0;">Please click the link below to download the rental agreement and sign it. Produce the signed agreement when receiving the kit.</p>
         <div style="margin-top: 15px; text-align: center;">
           <a href="${pdfDownloadUrl}" style="display: inline-block; background-color: #2c3e50; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Rental Agreement PDF</a>
         </div>
-        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: ${pdfDownloadUrl}</p>
+        <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser: <a href="${pdfDownloadUrl}" style="color: #2c3e50; text-decoration: underline;">${pdfDownloadUrl}</a></p>
       </div>
       ` : `
       <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
