@@ -411,12 +411,14 @@ function generateBookingNotificationEmail(rental: any, companyName: string, comp
           <strong>⚠️ Action Required:</strong> This rental needs to be shipped to the customer.
         </div>
         ` : ''}
-        ${pdfDownloadUrl ? `
+        ${pdfDownloadUrl && pdfDownloadUrl.trim() !== '' ? `
         <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 15px;">
           <p style="margin: 0;"><strong>📎 Rental Agreement PDF:</strong></p>
+          <p style="margin: 10px 0 0 0;">Please click the link below to download the rental agreement and sign it. Produce the signed agreement when receiving the kit.</p>
           <div style="margin-top: 10px;">
-            <a href="${pdfDownloadUrl}" style="color: #2c3e50; text-decoration: underline;">Download Rental Agreement</a>
+            <a href="${pdfDownloadUrl}" style="display: inline-block; background-color: #2c3e50; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download Rental Agreement PDF</a>
           </div>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Link: <a href="${pdfDownloadUrl}" style="color: #2c3e50; text-decoration: underline; word-break: break-all;">${pdfDownloadUrl}</a></p>
         </div>
         ` : ''}
       </div>
