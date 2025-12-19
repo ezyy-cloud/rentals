@@ -8,7 +8,7 @@ const corsHeaders = {
 }
 
 interface EmailRequest {
-  type: 'booking_confirmation' | 'booking_notification' | 'due_return_7days' | 'due_return_1day' | 'overdue_rental' | 'subscription_due' | 'rental_agreement'
+  type: 'booking_confirmation' | 'booking_notification' | 'due_return_7days' | 'due_return_1day' | 'overdue_rental' | 'subscription_due' | 'rental_agreement' | 'rental_update' | 'rental_delivered' | 'rental_returned'
   rental_id?: string
   user_id?: string
   device_id?: string
@@ -152,6 +152,21 @@ serve(async (req) => {
       case 'rental_agreement':
         emailSubject = `Rental Agreement - ${companyName}`
         emailHtml = generateRentalAgreementEmail(rental, companyName, companyEmail, companyPhone, pdfDownloadUrl)
+        break
+
+      case 'rental_update':
+        emailSubject = `Rental Updated - ${companyName}`
+        emailHtml = generateRentalUpdateEmail(rental, companyName, companyEmail, companyPhone, companyWebsite)
+        break
+
+      case 'rental_delivered':
+        emailSubject = `Rental Delivered - ${companyName}`
+        emailHtml = generateRentalDeliveredEmail(rental, companyName, companyEmail, companyPhone, companyWebsite)
+        break
+
+      case 'rental_returned':
+        emailSubject = `Rental Return Confirmation - ${companyName}`
+        emailHtml = generateRentalReturnedEmail(rental, companyName, companyEmail, companyPhone, companyWebsite)
         break
 
       default:
@@ -594,6 +609,212 @@ function generateRentalAgreementEmail(rental: any, companyName: string, companyE
         <p style="margin: 0;"><strong>${companyName}</strong></p>
         <p style="margin: 5px 0;">Email: ${companyEmail}</p>
         <p style="margin: 5px 0;">Phone: ${companyPhone}</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+function generateRentalUpdateEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string, companyWebsite: string): string {
+  const startDate = new Date(rental.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const endDate = new Date(rental.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Rental Updated</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+        <h1 style="color: #1565c0; margin-top: 0;">📝 Rental Updated</h1>
+        <p>Dear ${rental.user?.first_name ?? 'Customer'},</p>
+        <p>Your rental has been updated. Please review the details below.</p>
+      </div>
+
+      <div style="background-color: #ffffff; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #2c3e50; margin-top: 0;">Updated Rental Details</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Device:</td>
+            <td style="padding: 8px 0;">${rental.device?.name ?? 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Start Date:</td>
+            <td style="padding: 8px 0;">${startDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">End Date:</td>
+            <td style="padding: 8px 0;">${endDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Delivery Method:</td>
+            <td style="padding: 8px 0;">${rental.delivery_method === 'shipping' ? 'Shipping' : 'Collection'}</td>
+          </tr>
+          ${rental.delivery_method === 'shipping' && rental.shipping_address ? `
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Shipping Address:</td>
+            <td style="padding: 8px 0;">${rental.shipping_address}</td>
+          </tr>
+          ` : ''}
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Daily Rate:</td>
+            <td style="padding: 8px 0;">$${rental.rate.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Security Deposit:</td>
+            <td style="padding: 8px 0;">$${rental.deposit.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Total Paid:</td>
+            <td style="padding: 8px 0;">$${rental.total_paid.toFixed(2)}</td>
+          </tr>
+        </table>
+        ${rental.accessories && rental.accessories.length > 0 ? `
+        <h3 style="color: #2c3e50; margin-top: 20px;">Accessories Included:</h3>
+        <ul>
+          ${rental.accessories.map((ra: any) => `<li>${ra.accessory?.name ?? 'N/A'} (Quantity: ${ra.quantity})</li>`).join('')}
+        </ul>
+        ` : ''}
+      </div>
+
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
+        <p style="margin: 0;"><strong>${companyName}</strong></p>
+        <p style="margin: 5px 0;">Email: ${companyEmail}</p>
+        <p style="margin: 5px 0;">Phone: ${companyPhone}</p>
+        ${companyWebsite ? `<p style="margin: 5px 0;">Website: ${companyWebsite}</p>` : ''}
+      </div>
+    </body>
+    </html>
+  `
+}
+
+function generateRentalDeliveredEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string, companyWebsite: string): string {
+  const shippedDate = rental.shipped_date ? new Date(rental.shipped_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'
+  const endDate = new Date(rental.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Rental Delivered</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+        <h1 style="color: #2e7d32; margin-top: 0;">🚚 Rental ${rental.delivery_method === 'shipping' ? 'Shipped' : 'Ready for Collection'}</h1>
+        <p>Dear ${rental.user?.first_name ?? 'Customer'},</p>
+        <p>Great news! Your rental has been ${rental.delivery_method === 'shipping' ? 'shipped' : 'prepared for collection'}.</p>
+      </div>
+
+      <div style="background-color: #ffffff; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #2c3e50; margin-top: 0;">Rental Details</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Device:</td>
+            <td style="padding: 8px 0;">${rental.device?.name ?? 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">${rental.delivery_method === 'shipping' ? 'Shipped Date:' : 'Ready for Collection:'}</td>
+            <td style="padding: 8px 0;"><strong>${shippedDate}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Return Date:</td>
+            <td style="padding: 8px 0;">${endDate}</td>
+          </tr>
+          ${rental.delivery_method === 'shipping' && rental.shipping_address ? `
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Shipping Address:</td>
+            <td style="padding: 8px 0;">${rental.shipping_address}</td>
+          </tr>
+          ` : ''}
+        </table>
+        ${rental.accessories && rental.accessories.length > 0 ? `
+        <h3 style="color: #2c3e50; margin-top: 20px;">Accessories Included:</h3>
+        <ul>
+          ${rental.accessories.map((ra: any) => `<li>${ra.accessory?.name ?? 'N/A'} (Quantity: ${ra.quantity})</li>`).join('')}
+        </ul>
+        ` : ''}
+      </div>
+
+      ${rental.delivery_method === 'shipping' ? `
+      <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="margin: 0;"><strong>📦 Shipping Information</strong></p>
+        <p style="margin: 10px 0 0 0;">Your rental is on its way! Please ensure someone is available to receive the package at the shipping address.</p>
+      </div>
+      ` : `
+      <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="margin: 0;"><strong>📍 Collection Information</strong></p>
+        <p style="margin: 10px 0 0 0;">Your rental is ready for collection. Please contact us to arrange a convenient time to pick up your device.</p>
+      </div>
+      `}
+
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
+        <p style="margin: 0;"><strong>${companyName}</strong></p>
+        <p style="margin: 5px 0;">Email: ${companyEmail}</p>
+        <p style="margin: 5px 0;">Phone: ${companyPhone}</p>
+        ${companyWebsite ? `<p style="margin: 5px 0;">Website: ${companyWebsite}</p>` : ''}
+      </div>
+    </body>
+    </html>
+  `
+}
+
+function generateRentalReturnedEmail(rental: any, companyName: string, companyEmail: string, companyPhone: string, companyWebsite: string): string {
+  const returnedDate = rental.returned_date ? new Date(rental.returned_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'
+  const startDate = new Date(rental.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const endDate = new Date(rental.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Rental Return Confirmation</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+        <h1 style="color: #2e7d32; margin-top: 0;">✅ Rental Return Confirmation</h1>
+        <p>Dear ${rental.user?.first_name ?? 'Customer'},</p>
+        <p>Thank you! We have confirmed the return of your rental.</p>
+      </div>
+
+      <div style="background-color: #ffffff; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #2c3e50; margin-top: 0;">Rental Summary</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Device:</td>
+            <td style="padding: 8px 0;">${rental.device?.name ?? 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Start Date:</td>
+            <td style="padding: 8px 0;">${startDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">End Date:</td>
+            <td style="padding: 8px 0;">${endDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Returned Date:</td>
+            <td style="padding: 8px 0;"><strong style="color: #4caf50;">${returnedDate}</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="margin: 0;"><strong>Thank you for choosing ${companyName}!</strong></p>
+        <p style="margin: 10px 0 0 0;">We appreciate your business and hope you had a great experience. If you have any questions or need assistance with future rentals, please don't hesitate to contact us.</p>
+      </div>
+
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
+        <p style="margin: 0;"><strong>${companyName}</strong></p>
+        <p style="margin: 5px 0;">Email: ${companyEmail}</p>
+        <p style="margin: 5px 0;">Phone: ${companyPhone}</p>
+        ${companyWebsite ? `<p style="margin: 5px 0;">Website: ${companyWebsite}</p>` : ''}
       </div>
     </body>
     </html>

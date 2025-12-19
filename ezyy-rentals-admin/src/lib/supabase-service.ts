@@ -399,6 +399,30 @@ export const rentalsService = {
       }
     }
 
+    // Send update notification email to customer
+    if (data) {
+      try {
+        // Get full rental data with user information
+        const { data: fullRental } = await supabase
+          .from('rentals')
+          .select(`
+            *,
+            user:users(*),
+            device:devices(*, device_type:device_types(*)),
+            accessories:rental_accessories(*, accessory:accessories(*))
+          `)
+          .eq('id', id)
+          .single()
+
+        if (fullRental?.user?.email) {
+          await emailService.sendRentalUpdate(id, fullRental.user.email)
+        }
+      } catch (emailError) {
+        // Don't fail rental update if email fails
+        console.error('Error sending rental update email:', emailError)
+      }
+    }
+
     return { data, error: null }
   },
   async delete(id: string) {
@@ -413,6 +437,31 @@ export const rentalsService = {
       .eq('id', rentalId)
       .select()
       .single()
+    
+    // Send return confirmation email to customer
+    if (!error && data) {
+      try {
+        // Get full rental data with user information
+        const { data: fullRental } = await supabase
+          .from('rentals')
+          .select(`
+            *,
+            user:users(*),
+            device:devices(*, device_type:device_types(*)),
+            accessories:rental_accessories(*, accessory:accessories(*))
+          `)
+          .eq('id', rentalId)
+          .single()
+
+        if (fullRental?.user?.email) {
+          await emailService.sendRentalReturned(rentalId, fullRental.user.email)
+        }
+      } catch (emailError) {
+        // Don't fail rental update if email fails
+        console.error('Error sending rental returned email:', emailError)
+      }
+    }
+    
     return { data, error }
   },
   async markRentalAsShipped(rentalId: string, shippedDate?: string) {
@@ -432,6 +481,30 @@ export const rentalsService = {
         .eq('type', 'rental_pending_shipment')
         .eq('reference_id', rentalId)
         .eq('is_read', false)
+    }
+
+    // Send delivery confirmation email to customer
+    if (!error && data) {
+      try {
+        // Get full rental data with user information
+        const { data: fullRental } = await supabase
+          .from('rentals')
+          .select(`
+            *,
+            user:users(*),
+            device:devices(*, device_type:device_types(*)),
+            accessories:rental_accessories(*, accessory:accessories(*))
+          `)
+          .eq('id', rentalId)
+          .single()
+
+        if (fullRental?.user?.email) {
+          await emailService.sendRentalDelivered(rentalId, fullRental.user.email)
+        }
+      } catch (emailError) {
+        // Don't fail rental update if email fails
+        console.error('Error sending rental delivered email:', emailError)
+      }
     }
 
     return { data, error }

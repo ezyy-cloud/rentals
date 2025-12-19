@@ -8,6 +8,9 @@ export type EmailType =
   | 'overdue_rental' 
   | 'subscription_due' 
   | 'rental_agreement'
+  | 'rental_update'
+  | 'rental_delivered'
+  | 'rental_returned'
 
 interface SendEmailParams {
   type: EmailType
@@ -142,6 +145,39 @@ export const emailService = {
   async sendRentalAgreement(rentalId: string, customerEmail: string): Promise<{ success: boolean; error?: string }> {
     return this.sendEmail({
       type: 'rental_agreement',
+      rental_id: rentalId,
+      recipient_email: customerEmail,
+    })
+  },
+
+  /**
+   * Send rental update notification email to customer
+   */
+  async sendRentalUpdate(rentalId: string, customerEmail: string): Promise<{ success: boolean; error?: string }> {
+    return this.sendEmail({
+      type: 'rental_update',
+      rental_id: rentalId,
+      recipient_email: customerEmail,
+    })
+  },
+
+  /**
+   * Send rental delivered/shipped notification email to customer
+   */
+  async sendRentalDelivered(rentalId: string, customerEmail: string): Promise<{ success: boolean; error?: string }> {
+    return this.sendEmail({
+      type: 'rental_delivered',
+      rental_id: rentalId,
+      recipient_email: customerEmail,
+    })
+  },
+
+  /**
+   * Send rental returned confirmation email to customer
+   */
+  async sendRentalReturned(rentalId: string, customerEmail: string): Promise<{ success: boolean; error?: string }> {
+    return this.sendEmail({
+      type: 'rental_returned',
       rental_id: rentalId,
       recipient_email: customerEmail,
     })
